@@ -16,6 +16,9 @@ pub fn run() {
             // Research commands
             research::search_papers,
             research::analyze_ingredient,
+            research::search_web,
+            research::search_conferences,
+            research::search_news,
             // Content commands
             content::generate_content_plan,
             content::create_persona,

@@ -49,6 +49,10 @@ export default function Panel1ProjectResearch({ className = "" }: Panel1Props) {
     isLoadingResearch,
     selectResearchItem,
     clearResearchSelection,
+    researchSources,
+    toggleResearchSource,
+    researchLimit,
+    setResearchLimit,
   } = useKeywordStore();
   const { generateContent } = useContentStore();
   const { selectedContentPromptId } = useSettingsStore();
@@ -211,11 +215,43 @@ export default function Panel1ProjectResearch({ className = "" }: Panel1Props) {
           className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none h-20 mb-3"
         />
 
+        {/* 검색 소스 선택 */}
+        <div className="flex flex-wrap items-center gap-3 mb-3">
+          {researchSources.map((source) => (
+            <label
+              key={source.type}
+              className="flex items-center gap-1.5 cursor-pointer select-none"
+            >
+              <input
+                type="checkbox"
+                checked={source.enabled}
+                onChange={() => toggleResearchSource(source.type)}
+                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
+              />
+              <span className="text-sm text-gray-700">{source.label}</span>
+            </label>
+          ))}
+          {/* 검색 개수 선택 */}
+          <div className="flex items-center gap-1.5 ml-auto">
+            <span className="text-sm text-gray-500">각</span>
+            <select
+              value={researchLimit}
+              onChange={(e) => setResearchLimit(Number(e.target.value))}
+              className="px-2 py-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
+            >
+              <option value={5}>5개</option>
+              <option value={10}>10개</option>
+              <option value={20}>20개</option>
+              <option value={30}>30개</option>
+            </select>
+          </div>
+        </div>
+
         {/* 자료조사 + 기획일괄진행 버튼 */}
         <div className="flex gap-2 mb-3">
           <button
             onClick={handleStartResearch}
-            disabled={isLoadingResearch || isBatchProcessing || !researchPrompt.trim()}
+            disabled={isLoadingResearch || isBatchProcessing || !researchPrompt.trim() || !researchSources.some(s => s.enabled)}
             className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
           >
             <Search className="w-4 h-4" />
@@ -223,7 +259,7 @@ export default function Panel1ProjectResearch({ className = "" }: Panel1Props) {
           </button>
           <button
             onClick={handleBatchProcess}
-            disabled={isLoadingResearch || isBatchProcessing || !researchPrompt.trim()}
+            disabled={isLoadingResearch || isBatchProcessing || !researchPrompt.trim() || !researchSources.some(s => s.enabled)}
             className="flex-1 px-3 py-2 bg-gradient-to-r from-blue-600 to-green-600 text-white text-sm rounded-lg hover:from-blue-700 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
             title="자료조사 후 자동으로 콘텐츠 기획까지 진행"
           >

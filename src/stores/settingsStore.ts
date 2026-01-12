@@ -175,6 +175,7 @@ interface SettingsState {
   apiKeys: ApiKeys;
   apiSelection: ApiSelection;
   googleImageModel: GoogleImageModel;
+  googleSearchCx: string; // Google Custom Search Engine ID
   imagePrompts: ImagePrompt[];
   contentPrompts: ContentPrompt[];
   savePath: string;
@@ -192,6 +193,7 @@ interface SettingsState {
   saveApiKeys: (keys: ApiKeys) => Promise<void>;
   setApiSelection: (selection: ApiSelection) => void;
   setGoogleImageModel: (model: GoogleImageModel) => void;
+  setGoogleSearchCx: (cx: string) => void;
   addImagePrompt: (prompt: Omit<ImagePrompt, "id">) => void;
   updateImagePrompt: (id: string, prompt: Partial<ImagePrompt>) => void;
   deleteImagePrompt: (id: string) => void;
@@ -404,6 +406,7 @@ export const useSettingsStore = create<SettingsState>()(
           imageApi: "google",
         },
         googleImageModel: "imagen-4.0-generate-001" as GoogleImageModel,
+        googleSearchCx: "",
         imagePrompts: defaultImagePrompts,
         contentPrompts: defaultContentPrompts,
         savePath: "",
@@ -457,6 +460,8 @@ export const useSettingsStore = create<SettingsState>()(
         setApiSelection: (selection) => set({ apiSelection: selection }),
 
         setGoogleImageModel: (model) => set({ googleImageModel: model }),
+
+        setGoogleSearchCx: (cx) => set({ googleSearchCx: cx }),
 
         addImagePrompt: (prompt) => {
           const newPrompt: ImagePrompt = {
@@ -665,6 +670,7 @@ export const useSettingsStore = create<SettingsState>()(
           apiKeys: state.apiKeys,
           apiSelection: state.apiSelection,
           googleImageModel: state.googleImageModel,
+          googleSearchCx: state.googleSearchCx,
           imagePrompts: state.imagePrompts,
           contentPrompts: state.contentPrompts,
           savePath: state.savePath,

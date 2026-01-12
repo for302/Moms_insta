@@ -18,8 +18,9 @@ interface ValidationError {
 }
 
 export default function ApiSettings() {
-  const { apiKeys, saveApiKeys } = useSettingsStore();
+  const { apiKeys, saveApiKeys, googleSearchCx, setGoogleSearchCx } = useSettingsStore();
   const [localKeys, setLocalKeys] = useState<ApiKeys>(apiKeys);
+  const [localSearchCx, setLocalSearchCx] = useState(googleSearchCx);
   const [showKeys, setShowKeys] = useState({
     google: false,
     openai: false,
@@ -42,10 +43,15 @@ export default function ApiSettings() {
     setLocalKeys(apiKeys);
   }, [apiKeys]);
 
+  useEffect(() => {
+    setLocalSearchCx(googleSearchCx);
+  }, [googleSearchCx]);
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
       await saveApiKeys(localKeys);
+      setGoogleSearchCx(localSearchCx);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } finally {
@@ -116,7 +122,8 @@ export default function ApiSettings() {
   const hasChanges =
     localKeys.google !== apiKeys.google ||
     localKeys.openai !== apiKeys.openai ||
-    localKeys.anthropic !== apiKeys.anthropic;
+    localKeys.anthropic !== apiKeys.anthropic ||
+    localSearchCx !== googleSearchCx;
 
   return (
     <div className="space-y-6">
@@ -174,6 +181,26 @@ export default function ApiSettings() {
         {validationStatus.google === "valid" && (
           <p className="text-xs text-green-500">API 키가 유효합니다.</p>
         )}
+      </div>
+
+      {/* Google Custom Search Engine ID */}
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-700">
+          Google Custom Search Engine ID (CX)
+        </label>
+        <p className="text-xs text-gray-500">
+          웹 검색 기능에 필요합니다. Google Programmable Search Engine에서 생성할 수 있습니다.
+        </p>
+        <input
+          type="text"
+          value={localSearchCx}
+          onChange={(e) => setLocalSearchCx(e.target.value)}
+          placeholder="Google Custom Search Engine ID를 입력하세요"
+          className="input"
+        />
+        <p className="text-xs text-gray-400">
+          생성 방법: <a href="https://programmablesearchengine.google.com/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">programmablesearchengine.google.com</a> 에서 검색 엔진 생성 후 CX ID 복사
+        </p>
       </div>
 
       {/* OpenAI API Key */}

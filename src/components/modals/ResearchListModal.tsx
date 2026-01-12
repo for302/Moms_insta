@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useKeywordStore } from "@/stores/keywordStore";
-import { X, BookOpen, ExternalLink, ChevronDown, ChevronUp, FileText } from "lucide-react";
+import { X, BookOpen, ExternalLink, ChevronDown, ChevronUp, FileText, Globe, Newspaper, GraduationCap } from "lucide-react";
 
 interface ResearchListModalProps {
   isOpen: boolean;
@@ -61,14 +61,25 @@ export default function ResearchListModal({ isOpen, onClose }: ResearchListModal
                       <div className="flex-1">
                         <h3 className="font-semibold text-gray-800 mb-1">{item.title}</h3>
                         <p className="text-sm text-gray-600">{item.summary}</p>
-                        <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
-                          <span>논문 {item.fullReport.papers.length}개</span>
+                        <div className="flex items-center gap-3 mt-2 text-xs text-gray-500 flex-wrap">
+                          {item.fullReport.papers.length > 0 && (
+                            <span className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded">논문 {item.fullReport.papers.length}</span>
+                          )}
+                          {item.fullReport.conferences?.length > 0 && (
+                            <span className="px-2 py-0.5 bg-purple-50 text-purple-600 rounded">학회 {item.fullReport.conferences.length}</span>
+                          )}
+                          {item.fullReport.webResults?.length > 0 && (
+                            <span className="px-2 py-0.5 bg-green-50 text-green-600 rounded">웹 {item.fullReport.webResults.length}</span>
+                          )}
+                          {item.fullReport.news?.length > 0 && (
+                            <span className="px-2 py-0.5 bg-orange-50 text-orange-600 rounded">뉴스 {item.fullReport.news.length}</span>
+                          )}
                           {item.fullReport.ingredientAnalysis && (
-                            <span>
-                              EWG 등급: {item.fullReport.ingredientAnalysis.ewgScore ?? "N/A"}
+                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded">
+                              EWG {item.fullReport.ingredientAnalysis.ewgScore ?? "N/A"}
                             </span>
                           )}
-                          <span>
+                          <span className="text-gray-400">
                             {new Date(item.createdAt).toLocaleDateString("ko-KR")}
                           </span>
                         </div>
@@ -152,46 +163,153 @@ export default function ResearchListModal({ isOpen, onClose }: ResearchListModal
                       )}
 
                       {/* 논문 목록 */}
-                      <div>
-                        <h4 className="font-medium text-gray-800 mb-3">
-                          관련 논문 ({item.fullReport.papers.length}개)
-                        </h4>
-                        <div className="space-y-2">
-                          {item.fullReport.papers.map((paper) => (
-                            <div
-                              key={paper.id}
-                              className="p-3 bg-gray-50 rounded-lg border border-gray-100"
-                            >
-                              <div className="font-medium text-gray-800 text-sm mb-1">
-                                {paper.title}
+                      {item.fullReport.papers.length > 0 && (
+                        <div>
+                          <h4 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
+                            <BookOpen className="w-4 h-4 text-blue-600" />
+                            논문 ({item.fullReport.papers.length}개)
+                          </h4>
+                          <div className="space-y-2">
+                            {item.fullReport.papers.map((paper) => (
+                              <div
+                                key={paper.id}
+                                className="p-3 bg-blue-50/50 rounded-lg border border-blue-100"
+                              >
+                                <div className="font-medium text-gray-800 text-sm mb-1">
+                                  {paper.title}
+                                </div>
+                                <div className="text-xs text-gray-500 mb-1">
+                                  {paper.authors.join(", ")} ({paper.publicationDate})
+                                </div>
+                                <div className="text-xs text-gray-500 mb-2">
+                                  {paper.source}
+                                  {paper.citationCount && ` · 인용 ${paper.citationCount}회`}
+                                </div>
+                                {paper.abstract && (
+                                  <p className="text-xs text-gray-600 line-clamp-2 mb-2">
+                                    {paper.abstract}
+                                  </p>
+                                )}
+                                {paper.url && (
+                                  <a
+                                    href={paper.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                                  >
+                                    보기 <ExternalLink className="w-3 h-3" />
+                                  </a>
+                                )}
                               </div>
-                              <div className="text-xs text-gray-500 mb-1">
-                                {paper.authors.join(", ")} ({paper.publicationDate})
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 학회 목록 */}
+                      {item.fullReport.conferences && item.fullReport.conferences.length > 0 && (
+                        <div>
+                          <h4 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
+                            <GraduationCap className="w-4 h-4 text-purple-600" />
+                            학회 ({item.fullReport.conferences.length}개)
+                          </h4>
+                          <div className="space-y-2">
+                            {item.fullReport.conferences.map((conf) => (
+                              <div
+                                key={conf.id}
+                                className="p-3 bg-purple-50/50 rounded-lg border border-purple-100"
+                              >
+                                <div className="font-medium text-gray-800 text-sm mb-1">
+                                  {conf.title}
+                                </div>
+                                <div className="text-xs text-gray-500 mb-1">
+                                  {conf.authors.join(", ")} ({conf.publishedDate})
+                                </div>
+                                <div className="text-xs text-gray-500 mb-2">
+                                  {conf.source}
+                                </div>
+                                {conf.url && (
+                                  <a
+                                    href={conf.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-purple-600 hover:underline flex items-center gap-1"
+                                  >
+                                    보기 <ExternalLink className="w-3 h-3" />
+                                  </a>
+                                )}
                               </div>
-                              <div className="text-xs text-gray-500 mb-2">
-                                {paper.source}
-                                {paper.citationCount && ` · 인용 ${paper.citationCount}회`}
-                              </div>
-                              {paper.abstract && (
-                                <p className="text-xs text-gray-600 line-clamp-2 mb-2">
-                                  {paper.abstract}
-                                </p>
-                              )}
-                              {paper.doi && (
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 웹 검색 결과 */}
+                      {item.fullReport.webResults && item.fullReport.webResults.length > 0 && (
+                        <div>
+                          <h4 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
+                            <Globe className="w-4 h-4 text-green-600" />
+                            웹 검색 ({item.fullReport.webResults.length}개)
+                          </h4>
+                          <div className="space-y-2">
+                            {item.fullReport.webResults.map((web, idx) => (
+                              <div
+                                key={idx}
+                                className="p-3 bg-green-50/50 rounded-lg border border-green-100"
+                              >
                                 <a
-                                  href={`https://doi.org/${paper.doi}`}
+                                  href={web.link}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                                  className="font-medium text-gray-800 text-sm mb-1 hover:text-green-600 flex items-center gap-1"
                                 >
-                                  DOI: {paper.doi}
+                                  {web.title}
                                   <ExternalLink className="w-3 h-3" />
                                 </a>
-                              )}
-                            </div>
-                          ))}
+                                <p className="text-xs text-gray-600 mt-1">
+                                  {web.snippet}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
+                      )}
+
+                      {/* 뉴스 목록 */}
+                      {item.fullReport.news && item.fullReport.news.length > 0 && (
+                        <div>
+                          <h4 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
+                            <Newspaper className="w-4 h-4 text-orange-600" />
+                            뉴스 ({item.fullReport.news.length}개)
+                          </h4>
+                          <div className="space-y-2">
+                            {item.fullReport.news.map((news, idx) => (
+                              <div
+                                key={idx}
+                                className="p-3 bg-orange-50/50 rounded-lg border border-orange-100"
+                              >
+                                <a
+                                  href={news.link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="font-medium text-gray-800 text-sm mb-1 hover:text-orange-600 flex items-center gap-1"
+                                >
+                                  {news.title}
+                                  <ExternalLink className="w-3 h-3" />
+                                </a>
+                                <div className="text-xs text-gray-500 mt-1">
+                                  {news.source} · {news.pubDate}
+                                </div>
+                                {news.description && (
+                                  <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                                    {news.description}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

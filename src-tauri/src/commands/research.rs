@@ -1,8 +1,11 @@
 use crate::models::{IngredientAnalysis, PaperResult};
 use crate::services::anthropic::AnthropicService;
+use crate::services::crossref::CrossRefService;
 use crate::services::google::GoogleService;
+use crate::services::news::NewsService;
 use crate::services::openai::OpenAIService;
 use crate::services::pubmed::PubMedService;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[tauri::command]
@@ -161,4 +164,114 @@ fn extract_json(text: &str) -> String {
         }
     }
     text.to_string()
+}
+
+// ============================================
+// Web Search (Google Custom Search)
+// ============================================
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct WebSearchResult {
+    pub title: String,
+    pub link: String,
+    pub snippet: String,
+}
+
+#[tauri::command]
+pub async fn search_web(
+    query: String,
+    api_key: String,
+    cx: String,
+) -> Result<Vec<WebSearchResult>, String> {
+    if query.trim().is_empty() {
+        return Ok(vec![]);
+    }
+
+    let service = GoogleService::new(&api_key);
+    let results = service.search_web(&query, &cx).await?;
+
+    Ok(results
+        .into_iter()
+        .map(|r| WebSearchResult {
+            title: r.title,
+            link: r.link,
+            snippet: r.snippet.unwrap_or_default(),
+        })
+        .collect())
+}
+
+// ============================================
+// Conference Search (CrossRef API)
+// ============================================
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ConferenceSearchResult {
+    pub id: String,
+    pub title: String,
+    pub authors: Vec<String>,
+    pub published_date: String,
+    pub source: String,
+    pub doi: Option<String>,
+    pub url: Option<String>,
+}
+
+#[tauri::command]
+pub async fn search_conferences(
+    keyword: String,
+    limit: Option<u32>,
+) -> Result<Vec<ConferenceSearchResult>, String> {
+    if keyword.trim().is_empty() {
+        return Ok(vec![]);
+    }
+
+    let limit = limit.unwrap_or(10) as usize;
+    let service = CrossRefService::new();
+    let results = service.search(&keyword, limit).await?;
+
+    Ok(results
+        .into_iter()
+        .map(|r| ConferenceSearchResult {
+            id: r.id,
+            title: r.title,
+            authors: r.authors,
+            published_date: r.published_date,
+            source: r.source,
+            doi: r.doi,
+            url: r.url,
+        })
+        .collect())
+}
+
+// ============================================
+// News Search (RSS Feeds)
+// ============================================
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct NewsSearchResult {
+    pub title: String,
+    pub description: String,
+    pub link: String,
+    pub pub_date: String,
+    pub source: String,
+}
+
+#[tauri::command]
+pub async fn search_news(keyword: String) -> Result<Vec<NewsSearchResult>, String> {
+    if keyword.trim().is_empty() {
+        return Ok(vec![]);
+    }
+
+    let service = NewsService::new();
+    let results = service.search_all(&keyword).await?;
+
+    Ok(results
+        .into_iter()
+        .map(|r| NewsSearchResult {
+            title: r.title,
+            description: r.description,
+            link: r.link,
+            pub_date: r.pub_date,
+            source: r.source,
+        })
+        .collect())
 }

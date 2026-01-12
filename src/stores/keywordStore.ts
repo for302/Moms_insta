@@ -43,6 +43,22 @@ export interface ResearchProgress {
   error?: string;
 }
 
+// 검색 소스 타입
+export type ResearchSourceType = "papers" | "conferences" | "web" | "news";
+
+export interface ResearchSource {
+  type: ResearchSourceType;
+  label: string;
+  enabled: boolean;
+}
+
+export const defaultResearchSources: ResearchSource[] = [
+  { type: "papers", label: "논문", enabled: true },
+  { type: "conferences", label: "학회", enabled: false },
+  { type: "web", label: "웹검색", enabled: false },
+  { type: "news", label: "뉴스", enabled: false },
+];
+
 interface KeywordState {
   // State
   keyword: string;
@@ -57,6 +73,10 @@ interface KeywordState {
   researchPrompt: string;
   researchHistory: ResearchItem[];
   selectedResearchIds: Set<string>;
+
+  // Research Sources
+  researchSources: ResearchSource[];
+  researchLimit: number; // 검색 결과 개수 (5, 10, 20, 30)
 
   // Actions
   setKeyword: (keyword: string) => void;
@@ -76,6 +96,11 @@ interface KeywordState {
   toggleResearchSelection: (id: string) => void;
   clearResearchSelection: () => void;
   deleteResearchItem: (id: string) => void;
+
+  // Research Sources Actions
+  toggleResearchSource: (type: ResearchSourceType) => void;
+  setResearchLimit: (limit: number) => void;
+  getEnabledSources: () => ResearchSourceType[];
 }
 
 const generateId = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -100,6 +125,10 @@ export const useKeywordStore = create<KeywordState>()(
       researchPrompt: "",
       researchHistory: [],
       selectedResearchIds: new Set<string>(),
+
+      // Research Sources State
+      researchSources: [...defaultResearchSources],
+      researchLimit: 10, // 기본값 10개
 
       // Actions
       setKeyword: (keyword) => set({ keyword }),
@@ -325,17 +354,35 @@ export const useKeywordStore = create<KeywordState>()(
       setResearchPrompt: (prompt: string) => set({ researchPrompt: prompt }),
 
       startDetailedResearch: async () => {
-        const { researchPrompt, keyword } = get();
+        const { researchPrompt, keyword, researchSources, researchLimit } = get();
         const searchKeyword = researchPrompt.trim() || keyword.trim();
         if (!searchKeyword) return null;
 
-        // Initialize progress modal
-        const initialSteps = [
+        // Get enabled sources
+        const enabledSources = researchSources.filter((s) => s.enabled).map((s) => s.type);
+        if (enabledSources.length === 0) {
+          alert("최소 하나의 검색 소스를 선택해주세요.");
+          return null;
+        }
+
+        // Build dynamic steps based on enabled sources
+        const initialSteps: { name: string; status: "pending" | "loading" | "done" | "error"; message?: string }[] = [
           { name: "API 설정 확인", status: "pending" as const },
-          { name: "논문 검색", status: "pending" as const },
-          { name: "성분 분석", status: "pending" as const },
-          { name: "리포트 생성", status: "pending" as const },
         ];
+        if (enabledSources.includes("papers")) {
+          initialSteps.push({ name: "논문 검색", status: "pending" as const });
+        }
+        if (enabledSources.includes("conferences")) {
+          initialSteps.push({ name: "학회 검색", status: "pending" as const });
+        }
+        if (enabledSources.includes("web")) {
+          initialSteps.push({ name: "웹 검색", status: "pending" as const });
+        }
+        if (enabledSources.includes("news")) {
+          initialSteps.push({ name: "뉴스 검색", status: "pending" as const });
+        }
+        initialSteps.push({ name: "성분 분석", status: "pending" as const });
+        initialSteps.push({ name: "리포트 생성", status: "pending" as const });
 
         set({
           isLoadingResearch: true,
@@ -374,15 +421,63 @@ export const useKeywordStore = create<KeywordState>()(
           }
           updateStep("API 설정 확인", "done", `${provider} API 사용`);
 
-          // Step 2: 논문 검색
-          updateStep("논문 검색", "loading");
+          // Step 2: 논문 검색 (if enabled)
           let papersResult: tauriApi.PaperResult[] = [];
-          try {
-            papersResult = await tauriApi.searchPapers(searchKeyword, 10);
-            updateStep("논문 검색", "done", `${papersResult.length}개 논문 발견`);
-          } catch (error) {
-            console.error("Paper search failed:", error);
-            updateStep("논문 검색", "error", `검색 실패: ${error}`);
+          if (enabledSources.includes("papers")) {
+            updateStep("논문 검색", "loading");
+            try {
+              papersResult = await tauriApi.searchPapers(searchKeyword, researchLimit);
+              updateStep("논문 검색", "done", `${papersResult.length}개 논문 발견`);
+            } catch (error) {
+              console.error("Paper search failed:", error);
+              updateStep("논문 검색", "error", `검색 실패: ${error}`);
+            }
+          }
+
+          // Step 2b: 학회 검색 (if enabled) - CrossRef API
+          let conferenceResults: tauriApi.ConferenceSearchResult[] = [];
+          if (enabledSources.includes("conferences")) {
+            updateStep("학회 검색", "loading");
+            try {
+              conferenceResults = await tauriApi.searchConferences(searchKeyword, researchLimit);
+              updateStep("학회 검색", "done", `${conferenceResults.length}개 학회 자료 발견`);
+            } catch (error) {
+              console.error("Conference search failed:", error);
+              updateStep("학회 검색", "error", `검색 실패: ${error}`);
+            }
+          }
+
+          // Step 2c: 웹 검색 (if enabled) - Google Custom Search
+          let webResults: tauriApi.WebSearchResult[] = [];
+          if (enabledSources.includes("web")) {
+            updateStep("웹 검색", "loading");
+            try {
+              // Google Custom Search requires API key and CX (custom search engine ID)
+              const googleApiKey = settings.apiKeys.google;
+              const cx = settings.googleSearchCx;
+              if (googleApiKey && cx) {
+                webResults = await tauriApi.searchWeb(searchKeyword, googleApiKey, cx);
+                updateStep("웹 검색", "done", `${webResults.length}개 웹 결과 발견`);
+              } else {
+                updateStep("웹 검색", "done", "Google Search Engine ID 설정 필요");
+              }
+            } catch (error) {
+              console.error("Web search failed:", error);
+              updateStep("웹 검색", "error", `검색 실패: ${error}`);
+            }
+          }
+
+          // Step 2d: 뉴스 검색 (if enabled) - RSS Feeds
+          let newsResults: tauriApi.NewsSearchResult[] = [];
+          if (enabledSources.includes("news")) {
+            updateStep("뉴스 검색", "loading");
+            try {
+              newsResults = await tauriApi.searchNews(searchKeyword);
+              updateStep("뉴스 검색", "done", `${newsResults.length}개 뉴스 발견`);
+            } catch (error) {
+              console.error("News search failed:", error);
+              updateStep("뉴스 검색", "error", `검색 실패: ${error}`);
+            }
           }
 
           // Step 3: 성분 분석
@@ -450,14 +545,37 @@ JSON 형식으로 응답해주세요.`;
             url: p?.doi ? `https://doi.org/${p.doi}` : undefined,
           }));
 
-          // Create sources from papers
-          const sources: SourceReference[] = papers.map((p) => ({
-            id: generateId("src"),
-            title: p.title,
-            url: p.url || (p.doi ? `https://doi.org/${p.doi}` : ""),
-            type: "paper" as const,
-            citedIn: "research",
-          }));
+          // Create sources from all results
+          const sources: SourceReference[] = [
+            ...papers.map((p) => ({
+              id: generateId("src"),
+              title: p.title,
+              url: p.url || (p.doi ? `https://doi.org/${p.doi}` : ""),
+              type: "paper" as const,
+              citedIn: "research",
+            })),
+            ...conferenceResults.map((c) => ({
+              id: generateId("src"),
+              title: c.title,
+              url: c.url || (c.doi ? `https://doi.org/${c.doi}` : ""),
+              type: "journal" as const,
+              citedIn: "research",
+            })),
+            ...webResults.map((w) => ({
+              id: generateId("src"),
+              title: w.title,
+              url: w.link,
+              type: "website" as const,
+              citedIn: "research",
+            })),
+            ...newsResults.map((n) => ({
+              id: generateId("src"),
+              title: n.title,
+              url: n.link,
+              type: "website" as const,
+              citedIn: "research",
+            })),
+          ];
 
           // Build ingredient analysis
           let ingredientAnalysis: IngredientAnalysis | null = null;
@@ -489,10 +607,17 @@ JSON 형식으로 응답해주세요.`;
             };
           }
 
-          // Build summary
+          // Build summary with all result counts
+          const resultCounts = [];
+          if (papers.length > 0) resultCounts.push(`논문 ${papers.length}건`);
+          if (conferenceResults.length > 0) resultCounts.push(`학회 ${conferenceResults.length}건`);
+          if (webResults.length > 0) resultCounts.push(`웹 ${webResults.length}건`);
+          if (newsResults.length > 0) resultCounts.push(`뉴스 ${newsResults.length}건`);
+          const resultCountsText = resultCounts.length > 0 ? resultCounts.join(", ") : "결과 없음";
+
           const summary = ingredientAnalysis
-            ? `${ingredientAnalysis.koreanName}(${ingredientAnalysis.ingredientName})은(는) ${ingredientAnalysis.benefits.slice(0, 3).join(", ")} 등의 효능이 있습니다. EWG 등급: ${ingredientAnalysis.ewgScore ?? "N/A"}`
-            : `${searchKeyword}에 대한 ${papers.length}개의 논문을 찾았습니다.`;
+            ? `${ingredientAnalysis.koreanName}(${ingredientAnalysis.ingredientName})은(는) ${ingredientAnalysis.benefits.slice(0, 3).join(", ")} 등의 효능이 있습니다. EWG 등급: ${ingredientAnalysis.ewgScore ?? "N/A"} (${resultCountsText})`
+            : `${searchKeyword}에 대한 검색 결과: ${resultCountsText}`;
 
           // Create ResearchItem
           const now = new Date().toISOString();
@@ -520,6 +645,27 @@ JSON 형식으로 응답해주세요.`;
                 citationCount: p.citationCount ?? null,
                 doi: p.doi ?? null,
                 url: p.url,
+              })),
+              conferences: conferenceResults.map((c) => ({
+                id: c.id,
+                title: c.title,
+                authors: c.authors,
+                publishedDate: c.publishedDate,
+                source: c.source,
+                doi: c.doi ?? null,
+                url: c.url ?? null,
+              })),
+              webResults: webResults.map((w) => ({
+                title: w.title,
+                link: w.link,
+                snippet: w.snippet,
+              })),
+              news: newsResults.map((n) => ({
+                title: n.title,
+                description: n.description,
+                link: n.link,
+                pubDate: n.pubDate,
+                source: n.source,
               })),
               sources,
             },
@@ -618,6 +764,24 @@ JSON 형식으로 응답해주세요.`;
             selectedResearchIds: newSet,
           };
         });
+      },
+
+      // Research Sources Actions
+      toggleResearchSource: (type: ResearchSourceType) => {
+        set((state) => ({
+          researchSources: state.researchSources.map((source) =>
+            source.type === type ? { ...source, enabled: !source.enabled } : source
+          ),
+        }));
+      },
+
+      setResearchLimit: (limit: number) => {
+        set({ researchLimit: limit });
+      },
+
+      getEnabledSources: () => {
+        const { researchSources } = get();
+        return researchSources.filter((s) => s.enabled).map((s) => s.type);
       },
     }),
     { name: "keyword-store" }

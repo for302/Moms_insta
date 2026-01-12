@@ -19,7 +19,34 @@ export interface ResearchItem {
 export interface ResearchReport {
   ingredientAnalysis: IngredientAnalysis | null;
   papers: PaperResult[];
+  conferences: ConferenceResult[];
+  webResults: WebResult[];
+  news: NewsResult[];
   sources: SourceReference[];
+}
+
+export interface ConferenceResult {
+  id: string;
+  title: string;
+  authors: string[];
+  publishedDate: string;
+  source: string;
+  doi: string | null;
+  url: string | null;
+}
+
+export interface WebResult {
+  title: string;
+  link: string;
+  snippet: string;
+}
+
+export interface NewsResult {
+  title: string;
+  description: string;
+  link: string;
+  pubDate: string;
+  source: string;
 }
 
 export interface IngredientAnalysis {

@@ -51,6 +51,27 @@ export interface ResearchReport {
     doi: string | null;
     url?: string;
   }>;
+  conferences: Array<{
+    id: string;
+    title: string;
+    authors: string[];
+    publishedDate: string;
+    source: string;
+    doi: string | null;
+    url: string | null;
+  }>;
+  webResults: Array<{
+    title: string;
+    link: string;
+    snippet: string;
+  }>;
+  news: Array<{
+    title: string;
+    description: string;
+    link: string;
+    pubDate: string;
+    source: string;
+  }>;
   sources: Array<{
     id: string;
     title: string;
@@ -246,6 +267,62 @@ export async function analyzeIngredient(
     apiKey,
     llmProvider,
   });
+}
+
+// ============================================
+// New Search Source Types and Functions
+// ============================================
+
+export interface WebSearchResult {
+  title: string;
+  link: string;
+  snippet: string;
+}
+
+export interface ConferenceSearchResult {
+  id: string;
+  title: string;
+  authors: string[];
+  publishedDate: string;
+  source: string;
+  doi: string | null;
+  url: string | null;
+}
+
+export interface NewsSearchResult {
+  title: string;
+  description: string;
+  link: string;
+  pubDate: string;
+  source: string;
+}
+
+/**
+ * Search web using Google Custom Search
+ */
+export async function searchWeb(
+  query: string,
+  apiKey: string,
+  cx: string
+): Promise<WebSearchResult[]> {
+  return invoke<WebSearchResult[]>("search_web", { query, apiKey, cx });
+}
+
+/**
+ * Search conferences/academic papers using CrossRef API
+ */
+export async function searchConferences(
+  keyword: string,
+  limit?: number
+): Promise<ConferenceSearchResult[]> {
+  return invoke<ConferenceSearchResult[]>("search_conferences", { keyword, limit });
+}
+
+/**
+ * Search news using RSS feeds (Yonhap, CNN)
+ */
+export async function searchNews(keyword: string): Promise<NewsSearchResult[]> {
+  return invoke<NewsSearchResult[]>("search_news", { keyword });
 }
 
 /**
