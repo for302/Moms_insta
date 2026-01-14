@@ -35,8 +35,8 @@ export default function Panel3ImageSettings({ className = "" }: Panel3Props) {
     (p) => p.id === currentPreset?.imageSizePresetId
   );
 
-  // Show max 6 image prompts (sorted by order in settings)
-  const displayPrompts = imagePrompts.slice(0, 6);
+  // Show all image prompts (sorted by order in settings)
+  const displayPrompts = imagePrompts;
 
   const handleGenerateImages = async () => {
     if (selectedIds.size === 0) {
@@ -71,8 +71,8 @@ export default function Panel3ImageSettings({ className = "" }: Panel3Props) {
             </span>
           </div>
 
-          {/* 프롬프트 썸네일 그리드 (2x3, 4:3 비율) */}
-          <div className="grid grid-cols-2 gap-2">
+          {/* 프롬프트 썸네일 그리드 (2열, 스크롤 가능) */}
+          <div className="grid grid-cols-2 gap-2 max-h-[280px] overflow-y-auto">
             {displayPrompts.map((prompt) => (
               <button
                 key={prompt.id}
@@ -112,15 +112,6 @@ export default function Panel3ImageSettings({ className = "" }: Panel3Props) {
               </button>
             ))}
 
-            {/* 빈 슬롯 */}
-            {Array.from({ length: Math.max(0, 6 - displayPrompts.length) }).map((_, i) => (
-              <div
-                key={`empty-${i}`}
-                className="aspect-[4/3] rounded-lg border-2 border-dashed border-gray-200 flex items-center justify-center"
-              >
-                <span className="text-xs text-gray-300">+</span>
-              </div>
-            ))}
           </div>
 
           {/* 선택된 프롬프트 정보 */}
