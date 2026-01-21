@@ -175,7 +175,7 @@ export const useKeywordStore = create<KeywordState>()(
         const initialSteps = [
           { name: "API 설정 확인", status: "pending" as const },
           { name: "논문 검색", status: "pending" as const },
-          { name: "성분 분석", status: "pending" as const },
+          { name: "주제 분석", status: "pending" as const },
           { name: "결과 정리", status: "pending" as const },
         ];
 
@@ -227,15 +227,15 @@ export const useKeywordStore = create<KeywordState>()(
             updateStep("논문 검색", "error", `검색 실패: ${error}`);
           }
 
-          // Step 3: 성분 분석
-          updateStep("성분 분석", "loading");
+          // Step 3: 주제 분석
+          updateStep("주제 분석", "loading");
           let analysisResult: tauriApi.IngredientAnalysis | null = null;
           try {
             analysisResult = await tauriApi.analyzeIngredient(keyword, apiKey, provider);
-            updateStep("성분 분석", "done", "분석 완료");
+            updateStep("주제 분석", "done", "분석 완료");
           } catch (error) {
-            console.error("Ingredient analysis failed:", error);
-            updateStep("성분 분석", "error", `분석 실패: ${error}`);
+            console.error("Topic analysis failed:", error);
+            updateStep("주제 분석", "error", `분석 실패: ${error}`);
           }
 
           // Step 4: 결과 정리
@@ -295,7 +295,7 @@ export const useKeywordStore = create<KeywordState>()(
 
           useContentStore.getState().setResearchData(researchSummary);
 
-          updateStep("결과 정리", "done", `논문 ${papers.length}개, 성분 분석 ${analysis ? "완료" : "실패"}`);
+          updateStep("결과 정리", "done", `논문 ${papers.length}개, 주제 분석 ${analysis ? "완료" : "실패"}`);
 
           set({
             researchResults: papers,
@@ -381,7 +381,7 @@ export const useKeywordStore = create<KeywordState>()(
         if (enabledSources.includes("news")) {
           initialSteps.push({ name: "뉴스 검색", status: "pending" as const });
         }
-        initialSteps.push({ name: "성분 분석", status: "pending" as const });
+        initialSteps.push({ name: "주제 분석", status: "pending" as const });
         initialSteps.push({ name: "리포트 생성", status: "pending" as const });
 
         set({
@@ -480,23 +480,22 @@ export const useKeywordStore = create<KeywordState>()(
             }
           }
 
-          // Step 3: 성분 분석
-          updateStep("성분 분석", "loading");
+          // Step 3: 주제 분석
+          updateStep("주제 분석", "loading");
           let analysisResult: tauriApi.IngredientAnalysis | null = null;
           try {
-            // Build the prompt for API preview
-            const researchPromptText = `다음 화장품 성분에 대해 분석해주세요:
+            // Get selected content prompt from settings
+            const { contentPrompts, selectedContentPromptId } = useSettingsStore.getState();
+            const selectedPrompt = contentPrompts.find(p => p.id === selectedContentPromptId);
+            const promptTemplate = selectedPrompt?.prompt || "주어진 주제에 대해 분석해주세요.";
+            const promptName = selectedPrompt?.name || "일반 분석";
 
-성분명: ${searchKeyword}
+            // Build the prompt for API preview using selected content prompt
+            const researchPromptText = `${promptTemplate}
 
-분석 요청 항목:
-1. 성분 영문명 및 한글명
-2. EWG 등급 (1-10)
-3. 주요 효능 목록
-4. 주의사항
-5. 권장 사용 농도
+주제/키워드: ${searchKeyword}
 
-관련 논문 수: ${papersResult.length}개
+관련 자료 수: ${papersResult.length}개
 
 JSON 형식으로 응답해주세요.`;
 
@@ -504,7 +503,7 @@ JSON 형식으로 응답해주세요.`;
             const { showPreview } = useApiPreviewStore.getState();
             const { confirmed } = await showPreview({
               type: "research",
-              title: "성분 분석 API 호출",
+              title: `${promptName} API 호출`,
               provider,
               endpoint: "analyzeIngredient",
               prompt: researchPromptText,
@@ -515,17 +514,17 @@ JSON 형식으로 응답해주세요.`;
             });
 
             if (!confirmed) {
-              updateStep("성분 분석", "error", "사용자 취소");
+              updateStep("주제 분석", "error", "사용자 취소");
               set({ isLoadingResearch: false });
               return null;
             }
 
             // Use the edited prompt (pass as part of the API call context if needed)
             analysisResult = await tauriApi.analyzeIngredient(searchKeyword, apiKey, provider);
-            updateStep("성분 분석", "done", "분석 완료");
+            updateStep("주제 분석", "done", "분석 완료");
           } catch (error) {
-            console.error("Ingredient analysis failed:", error);
-            updateStep("성분 분석", "error", `분석 실패: ${error}`);
+            console.error("Topic analysis failed:", error);
+            updateStep("주제 분석", "error", `분석 실패: ${error}`);
           }
 
           // Step 4: 리포트 생성

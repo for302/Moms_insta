@@ -12,6 +12,7 @@ interface PresetSelectorProps {
   onDuplicate?: () => void;
   onDelete?: (id: string) => void;
   onSizeChange?: (sizePresetId: string) => void;
+  onMarginChange?: (sizePresetId: string, marginHorizontal: number, marginVertical: number) => void;
   onSave?: () => Promise<void>;
   compact?: boolean;
 }
@@ -26,6 +27,7 @@ export default function PresetSelector({
   onDuplicate,
   onDelete,
   onSizeChange,
+  onMarginChange,
   onSave,
   compact = false,
 }: PresetSelectorProps) {
@@ -192,6 +194,60 @@ export default function PresetSelector({
           </select>
         </div>
       )}
+
+      {/* Margin Settings */}
+      {imageSizePresets && onMarginChange && currentPreset && (() => {
+        const selectedSizePreset = imageSizePresets.find(
+          (p) => p.id === currentPreset.imageSizePresetId
+        );
+        if (!selectedSizePreset) return null;
+
+        return (
+          <div className="flex-1">
+            <h4 className="text-sm font-medium text-gray-700 mb-2">여백 설정 (px)</h4>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <label className="text-xs text-gray-500 mb-1 block">좌우</label>
+                <input
+                  type="number"
+                  value={selectedSizePreset.marginHorizontal ?? 120}
+                  onChange={(e) => {
+                    const value = Math.max(0, parseInt(e.target.value) || 0);
+                    onMarginChange(
+                      selectedSizePreset.id,
+                      value,
+                      selectedSizePreset.marginVertical ?? 80
+                    );
+                  }}
+                  className="input w-full text-sm"
+                  min={0}
+                  max={300}
+                  step={10}
+                />
+              </div>
+              <div className="flex-1">
+                <label className="text-xs text-gray-500 mb-1 block">상하</label>
+                <input
+                  type="number"
+                  value={selectedSizePreset.marginVertical ?? 80}
+                  onChange={(e) => {
+                    const value = Math.max(0, parseInt(e.target.value) || 0);
+                    onMarginChange(
+                      selectedSizePreset.id,
+                      selectedSizePreset.marginHorizontal ?? 120,
+                      value
+                    );
+                  }}
+                  className="input w-full text-sm"
+                  min={0}
+                  max={300}
+                  step={10}
+                />
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

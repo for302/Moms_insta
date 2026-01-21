@@ -97,12 +97,12 @@ export default function ResearchListModal({ isOpen, onClose }: ResearchListModal
                   {/* 상세 내용 */}
                   {expandedId === item.id && (
                     <div className="p-4 border-t border-gray-200 space-y-4">
-                      {/* 성분 분석 */}
+                      {/* 주제 분석 */}
                       {item.fullReport.ingredientAnalysis && (
                         <div className="bg-blue-50 rounded-lg p-4">
                           <h4 className="font-medium text-blue-800 mb-2 flex items-center gap-2">
                             <FileText className="w-4 h-4" />
-                            성분 분석
+                            주제 분석
                           </h4>
                           <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>

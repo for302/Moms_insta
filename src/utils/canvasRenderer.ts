@@ -75,10 +75,24 @@ export async function renderLayeredImage(options: RenderOptions): Promise<string
     ctx.fillRect(x, y, w, h);
   }
 
-  // 2. Draw LLM image (z-index: 1)
+  // 2. Draw LLM image within hero_image bounds (z-index: 1)
+  const heroImageEl = preset.elements.find((e) => e.id === "hero_image");
   try {
     const img = await loadImage(imageUrl);
-    ctx.drawImage(img, 0, 0, width, height);
+
+    if (heroImageEl?.enabled) {
+      // Draw image scaled to fit hero_image element bounds
+      const heroX = (heroImageEl.x / 100) * width;
+      const heroY = (heroImageEl.y / 100) * height;
+      const heroW = (heroImageEl.width / 100) * width;
+      const heroH = (heroImageEl.height / 100) * height;
+
+      // Simply draw the image at hero bounds (stretched to fit)
+      ctx.drawImage(img, heroX, heroY, heroW, heroH);
+    } else {
+      // Fallback: draw full canvas if no hero_image element
+      ctx.drawImage(img, 0, 0, width, height);
+    }
   } catch (error) {
     console.error("Failed to load image:", error);
   }

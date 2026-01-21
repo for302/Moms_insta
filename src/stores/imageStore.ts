@@ -153,7 +153,12 @@ export const useImageStore = create<ImageState>()(
         const selectedPromptId = settings.selectedImagePromptId;
         const selectedPrompt = settings.imagePrompts.find((p) => p.id === selectedPromptId) || settings.imagePrompts[0];
         const stylePrompt = selectedPrompt?.prompt || "";
-        const negativePrompt = selectedPrompt?.negativePrompt || "";
+        // Auto-add "no text" to negative prompt to prevent garbled text in images
+        const baseNegativePrompt = selectedPrompt?.negativePrompt || "";
+        const noTextNegative = "text, letters, words, writing, watermark, signature, logo, typography, caption, label, Korean text, Chinese text, Japanese text";
+        const negativePrompt = baseNegativePrompt
+          ? `${baseNegativePrompt}, ${noTextNegative}`
+          : noTextNegative;
         const aspectRatio = selectedPrompt?.aspectRatio || "3:4";
 
         // Create image generation requests (use snake_case for Rust)

@@ -1,7 +1,7 @@
 import { useSettingsStore, googleImageModelOptions } from "@/stores/settingsStore";
 import { useContentStore } from "@/stores/contentStore";
 import { useImageStore } from "@/stores/imageStore";
-import { Image, Sparkles, Layout, Check, Cpu } from "lucide-react";
+import { Image, Sparkles, Layout, Check, Cpu, Maximize2 } from "lucide-react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 
 interface Panel3Props {
@@ -18,6 +18,8 @@ export default function Panel3ImageSettings({ className = "" }: Panel3Props) {
     apiSelection,
     googleImageModel,
     setGoogleImageModel,
+    updateLayoutPreset,
+    updateImageSizePreset,
   } = useSettingsStore();
   const { selectedIds } = useContentStore();
   const {
@@ -144,11 +146,69 @@ export default function Panel3ImageSettings({ className = "" }: Panel3Props) {
               </option>
             ))}
           </select>
+        </div>
 
-          {/* 이미지 크기 정보 */}
+        {/* 이미지 크기 선택 */}
+        <div className="mt-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <Maximize2 className="w-4 h-4 text-gray-500" />
+            <label className="text-xs font-medium text-gray-600">이미지 크기</label>
+          </div>
+          <select
+            value={currentPreset?.imageSizePresetId || "instagram"}
+            onChange={(e) => {
+              if (currentPreset) {
+                updateLayoutPreset(currentPreset.id, { imageSizePresetId: e.target.value });
+              }
+            }}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          >
+            {imageSizePresets.map((size) => (
+              <option key={size.id} value={size.id}>
+                {size.name} ({size.width}x{size.height})
+              </option>
+            ))}
+          </select>
+
+          {/* 여백 설정 */}
           {currentSizePreset && (
-            <div className="text-xs text-gray-500 bg-gray-50 px-3 py-2 rounded-lg">
-              크기: {currentSizePreset.width} x {currentSizePreset.height}px
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <label className="text-xs text-gray-500 mb-1 block">좌우 여백</label>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    value={currentSizePreset.marginHorizontal ?? 120}
+                    onChange={(e) => {
+                      const value = Math.max(0, parseInt(e.target.value) || 0);
+                      updateImageSizePreset(currentSizePreset.id, { marginHorizontal: value });
+                    }}
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
+                    min={0}
+                    max={300}
+                    step={10}
+                  />
+                  <span className="text-xs text-gray-400">px</span>
+                </div>
+              </div>
+              <div className="flex-1">
+                <label className="text-xs text-gray-500 mb-1 block">상하 여백</label>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    value={currentSizePreset.marginVertical ?? 80}
+                    onChange={(e) => {
+                      const value = Math.max(0, parseInt(e.target.value) || 0);
+                      updateImageSizePreset(currentSizePreset.id, { marginVertical: value });
+                    }}
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
+                    min={0}
+                    max={300}
+                    step={10}
+                  />
+                  <span className="text-xs text-gray-400">px</span>
+                </div>
+              </div>
             </div>
           )}
         </div>

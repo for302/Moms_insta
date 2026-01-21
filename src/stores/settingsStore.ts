@@ -109,6 +109,8 @@ export interface ImageSizePreset {
   name: string;
   width: number;
   height: number;
+  marginHorizontal?: number; // 좌우 여백 (px)
+  marginVertical?: number;   // 상하 여백 (px)
 }
 
 export interface TextStyle {
@@ -209,6 +211,8 @@ interface SettingsState {
   updateLayoutPreset: (id: string, preset: Partial<LayoutPreset>) => void;
   deleteLayoutPreset: (id: string) => void;
   setSelectedLayoutPreset: (id: string) => void;
+  // Image size preset actions
+  updateImageSizePreset: (id: string, updates: Partial<ImageSizePreset>) => void;
   // Font actions
   toggleFavoriteFont: (fontName: string) => void;
   setShowOnlyFavoriteFonts: (show: boolean) => void;
@@ -219,14 +223,16 @@ const defaultImagePrompts: ImagePrompt[] = [
     id: "default-1",
     name: "귀여운 캐릭터",
     prompt:
-      "귀여운 한국 스타일 캐릭터가 화장품 성분을 연구하는 모습, 밝고 따뜻한 색감, 인스타그램 카드 스타일, 미니멀한 배경",
+      "귀여운 한국 스타일 캐릭터가 화장품 성분을 연구하는 모습, 밝고 따뜻한 색감, 인스타그램 카드 스타일, 미니멀한 배경. 텍스트나 글자 없이 일러스트만 생성.",
+    negativePrompt: "text, letters, words, writing, watermark, signature, logo, typography, caption, label",
     isDefault: true,
   },
   {
     id: "default-2",
     name: "과학 일러스트",
     prompt:
-      "과학적이고 신뢰감 있는 일러스트 스타일, 분자 구조와 함께 성분을 설명하는 이미지, 파스텔 톤 배경",
+      "과학적이고 신뢰감 있는 일러스트 스타일, 분자 구조와 함께 성분을 설명하는 이미지, 파스텔 톤 배경. 텍스트나 글자 없이 일러스트만 생성.",
+    negativePrompt: "text, letters, words, writing, watermark, signature, logo, typography, caption, label",
     isDefault: true,
   },
 ];
@@ -234,20 +240,57 @@ const defaultImagePrompts: ImagePrompt[] = [
 const defaultContentPrompts: ContentPrompt[] = [
   {
     id: "default-content-1",
-    name: "전문가 톤",
+    name: "화장품 성분 소개",
     prompt: `당신은 미용예술학 박사이자 17년 경력의 뷰티 전문가입니다.
 주어진 화장품 성분에 대해 육아맘과 예비맘이 이해하기 쉽게 설명해주세요.
-논문을 기반으로 한 정확한 정보를 친근하고 신뢰감 있는 톤으로 전달합니다.`,
+논문을 기반으로 한 정확한 정보를 친근하고 신뢰감 있는 톤으로 전달합니다.
+EWG 등급, 효능, 주의사항 등을 포함해주세요.`,
+    isDefault: true,
+  },
+  {
+    id: "default-content-2",
+    name: "일반 정보 콘텐츠",
+    prompt: `당신은 해당 분야의 전문가입니다.
+주어진 주제에 대해 일반 대중이 이해하기 쉽게 설명해주세요.
+정확한 정보를 친근하고 신뢰감 있는 톤으로 전달합니다.
+핵심 포인트를 간결하게 정리해주세요.`,
+    isDefault: true,
+  },
+  {
+    id: "default-content-3",
+    name: "육아/교육 정보",
+    prompt: `당신은 10년 경력의 육아 전문가이자 아동발달 전문가입니다.
+주어진 주제에 대해 부모님들이 이해하기 쉽게 설명해주세요.
+과학적 근거를 바탕으로 실용적인 팁을 제공합니다.
+따뜻하고 공감하는 톤으로 작성해주세요.`,
+    isDefault: true,
+  },
+  {
+    id: "default-content-4",
+    name: "건강/영양 정보",
+    prompt: `당신은 영양학 전문가이자 건강 컨설턴트입니다.
+주어진 건강/영양 주제에 대해 일반인이 이해하기 쉽게 설명해주세요.
+과학적 연구를 바탕으로 정확한 정보를 전달합니다.
+실생활에서 적용 가능한 팁을 포함해주세요.`,
+    isDefault: true,
+  },
+  {
+    id: "default-content-5",
+    name: "라이프스타일/트렌드",
+    prompt: `당신은 라이프스타일 트렌드 전문가입니다.
+주어진 주제에 대해 MZ세대와 밀레니얼이 공감할 수 있게 설명해주세요.
+최신 트렌드를 반영하고 실용적인 정보를 제공합니다.
+친근하고 캐주얼한 톤으로 작성해주세요.`,
     isDefault: true,
   },
 ];
 
 const defaultImageSizePresets: ImageSizePreset[] = [
-  { id: "instagram", name: "인스타그램 게시물", width: 1080, height: 1350 },
-  { id: "youtube", name: "유튜브 썸네일", width: 1280, height: 720 },
-  { id: "facebook", name: "페이스북 게시물", width: 940, height: 788 },
-  { id: "story", name: "스토리", width: 1080, height: 1920 },
-  { id: "square", name: "정사각형", width: 1080, height: 1080 },
+  { id: "instagram", name: "인스타그램 게시물 (4:5)", width: 1080, height: 1350, marginHorizontal: 120, marginVertical: 80 },
+  { id: "reels", name: "릴스/스토리 (9:16)", width: 1080, height: 1920, marginHorizontal: 120, marginVertical: 100 },
+  { id: "youtube", name: "유튜브 썸네일", width: 1280, height: 720, marginHorizontal: 100, marginVertical: 60 },
+  { id: "facebook", name: "페이스북 게시물", width: 940, height: 788, marginHorizontal: 80, marginVertical: 60 },
+  { id: "square", name: "정사각형 (1:1)", width: 1080, height: 1080, marginHorizontal: 100, marginVertical: 100 },
 ];
 
 const defaultLayoutElements: LayoutElement[] = [
@@ -257,18 +300,18 @@ const defaultLayoutElements: LayoutElement[] = [
     enabled: true,
     type: "text",
     color: "#EF4444",
-    x: 10,
-    y: 70,
-    width: 80,
-    height: 8,
+    x: 3,
+    y: 76,
+    width: 94,
+    height: 4,
     textStyle: {
       fontFamily: "Pretendard",
-      fontSize: 51,
+      fontSize: 38,
       fontColor: "#374151",
       highlightEnabled: false,
       highlightColor: "#FFFF00",
       highlightOpacity: 0.5,
-      highlightMargin: 4,
+      highlightMargin: 0,
     },
     sampleText: "판테의 연구일지 #01",
   },
@@ -278,18 +321,18 @@ const defaultLayoutElements: LayoutElement[] = [
     enabled: true,
     type: "text",
     color: "#EC4899",
-    x: 10,
-    y: 75,
-    width: 80,
-    height: 5,
+    x: 3,
+    y: 81,
+    width: 94,
+    height: 4,
     textStyle: {
       fontFamily: "Pretendard",
-      fontSize: 33,
+      fontSize: 26,
       fontColor: "#374151",
       highlightEnabled: false,
       highlightColor: "#FFFF00",
       highlightOpacity: 0.5,
-      highlightMargin: 4,
+      highlightMargin: 0,
     },
     sampleText: "우리 아이 피부 지킴이, 판테놀 탐구",
   },
@@ -299,18 +342,18 @@ const defaultLayoutElements: LayoutElement[] = [
     enabled: true,
     type: "text",
     color: "#3B82F6",
-    x: 10,
-    y: 80,
-    width: 80,
-    height: 15,
+    x: 3,
+    y: 86,
+    width: 94,
+    height: 13,
     textStyle: {
       fontFamily: "Pretendard",
-      fontSize: 30,
+      fontSize: 22,
       fontColor: "#374151",
       highlightEnabled: false,
       highlightColor: "#FFFF00",
       highlightOpacity: 0.5,
-      highlightMargin: 4,
+      highlightMargin: 0,
     },
     sampleText: "EWG 1등급! 판테놀, 왜 엄마들이 푹 빠졌을까요? 피부 속 수분 충전 & 장벽 강화 비밀!",
   },
@@ -320,10 +363,10 @@ const defaultLayoutElements: LayoutElement[] = [
     enabled: true,
     type: "image",
     color: "#F59E0B",
-    x: 5,
-    y: 5,
-    width: 90,
-    height: 55,
+    x: 0,
+    y: 0,
+    width: 100,
+    height: 75,
   },
   {
     id: "background",
@@ -342,20 +385,20 @@ const defaultLayoutElements: LayoutElement[] = [
   },
   {
     id: "shape1",
-    name: "도형1",
+    name: "텍스트영역",
     enabled: true,
     type: "shape",
     color: "#8B5CF6",
-    x: 5,
-    y: 65,
-    width: 90,
-    height: 30,
+    x: 0,
+    y: 75,
+    width: 100,
+    height: 25,
     shapeStyle: {
-      backgroundColor: "#FFFFFF",
-      backgroundOpacity: 0.92,
+      backgroundColor: "#FEF3C7",
+      backgroundOpacity: 1,
       borderColor: "#E5E7EB",
-      borderOpacity: 1,
-      borderRadius: 25,
+      borderOpacity: 0,
+      borderRadius: 0,
       blurEnabled: false,
       blurAmount: 8,
     },
@@ -372,15 +415,15 @@ const defaultLayoutPresets: LayoutPreset[] = [
   },
   {
     id: "default-story",
-    name: "스토리 기본",
-    imageSizePresetId: "story",
+    name: "릴스/스토리 기본",
+    imageSizePresetId: "reels",
     elements: [
-      { id: "title", name: "제목", enabled: true, type: "text", color: "#EF4444", x: 10, y: 75, width: 80, height: 5, textStyle: { fontFamily: "Pretendard", fontSize: 42, fontColor: "#374151", highlightEnabled: false, highlightColor: "#FFFF00", highlightOpacity: 0.5, highlightMargin: 4 }, sampleText: "판테의 연구일지 #01" },
-      { id: "subtitle", name: "부제", enabled: true, type: "text", color: "#EC4899", x: 10, y: 80, width: 80, height: 4, textStyle: { fontFamily: "Pretendard", fontSize: 28, fontColor: "#374151", highlightEnabled: false, highlightColor: "#FFFF00", highlightOpacity: 0.5, highlightMargin: 4 }, sampleText: "우리 아이 피부 지킴이, 판테놀 탐구" },
-      { id: "short_knowledge", name: "짧은지식", enabled: true, type: "text", color: "#3B82F6", x: 10, y: 85, width: 80, height: 10, textStyle: { fontFamily: "Pretendard", fontSize: 24, fontColor: "#374151", highlightEnabled: false, highlightColor: "#FFFF00", highlightOpacity: 0.5, highlightMargin: 4 }, sampleText: "EWG 1등급! 판테놀, 왜 엄마들이 푹 빠졌을까요? 피부 속 수분 충전 & 장벽 강화 비밀!" },
-      { id: "hero_image", name: "히어로 이미지", enabled: true, type: "image", color: "#F59E0B", x: 5, y: 5, width: 90, height: 65 },
+      { id: "title", name: "제목", enabled: true, type: "text", color: "#EF4444", x: 3, y: 83, width: 94, height: 3, textStyle: { fontFamily: "Pretendard", fontSize: 32, fontColor: "#374151", highlightEnabled: false, highlightColor: "#FFFF00", highlightOpacity: 0.5, highlightMargin: 0 }, sampleText: "판테의 연구일지 #01" },
+      { id: "subtitle", name: "부제", enabled: true, type: "text", color: "#EC4899", x: 3, y: 87, width: 94, height: 3, textStyle: { fontFamily: "Pretendard", fontSize: 22, fontColor: "#374151", highlightEnabled: false, highlightColor: "#FFFF00", highlightOpacity: 0.5, highlightMargin: 0 }, sampleText: "우리 아이 피부 지킴이, 판테놀 탐구" },
+      { id: "short_knowledge", name: "짧은지식", enabled: true, type: "text", color: "#3B82F6", x: 3, y: 91, width: 94, height: 8, textStyle: { fontFamily: "Pretendard", fontSize: 18, fontColor: "#374151", highlightEnabled: false, highlightColor: "#FFFF00", highlightOpacity: 0.5, highlightMargin: 0 }, sampleText: "EWG 1등급! 판테놀, 왜 엄마들이 푹 빠졌을까요? 피부 속 수분 충전 & 장벽 강화 비밀!" },
+      { id: "hero_image", name: "히어로 이미지", enabled: true, type: "image", color: "#F59E0B", x: 0, y: 0, width: 100, height: 82 },
       { id: "background", name: "배경", enabled: true, type: "background", color: "#9CA3AF", x: 0, y: 0, width: 100, height: 100, backgroundStyle: { backgroundColor: "#FEF3C7", backgroundOpacity: 0.89 } },
-      { id: "shape1", name: "도형1", enabled: true, type: "shape", color: "#8B5CF6", x: 5, y: 72, width: 90, height: 25, shapeStyle: { backgroundColor: "#FFFFFF", backgroundOpacity: 0.92, borderColor: "#E5E7EB", borderOpacity: 1, borderRadius: 25, blurEnabled: false, blurAmount: 8 } },
+      { id: "shape1", name: "텍스트영역", enabled: true, type: "shape", color: "#8B5CF6", x: 0, y: 82, width: 100, height: 18, shapeStyle: { backgroundColor: "#FEF3C7", backgroundOpacity: 1, borderColor: "#E5E7EB", borderOpacity: 0, borderRadius: 0, blurEnabled: false, blurAmount: 8 } },
     ],
     isDefault: true,
   },
@@ -405,7 +448,7 @@ export const useSettingsStore = create<SettingsState>()(
           contentApi: "anthropic",
           imageApi: "google",
         },
-        googleImageModel: "imagen-4.0-generate-001" as GoogleImageModel,
+        googleImageModel: "imagen-4.0-fast-generate-001" as GoogleImageModel,
         googleSearchCx: "",
         imagePrompts: defaultImagePrompts,
         contentPrompts: defaultContentPrompts,
@@ -423,6 +466,12 @@ export const useSettingsStore = create<SettingsState>()(
         loadSettings: async () => {
           try {
             const settings = await tauriApi.getSettings();
+
+            // Ensure default content prompts exist
+            const currentPrompts = get().contentPrompts || [];
+            const existingIds = currentPrompts.map(p => p.id);
+            const missingDefaults = defaultContentPrompts.filter(p => !existingIds.includes(p.id));
+
             set({
               apiKeys: {
                 google: settings.apiKeys.google || "",
@@ -435,6 +484,10 @@ export const useSettingsStore = create<SettingsState>()(
               },
               savePath: settings.savePath || "",
               isLoaded: true,
+              // Add missing default prompts
+              ...(missingDefaults.length > 0 && {
+                contentPrompts: [...currentPrompts, ...missingDefaults],
+              }),
             });
           } catch (error) {
             console.error("Failed to load settings:", error);
@@ -647,6 +700,15 @@ export const useSettingsStore = create<SettingsState>()(
           }));
         },
 
+        // Image size preset actions
+        updateImageSizePreset: (id, updates) => {
+          set((state) => ({
+            imageSizePresets: state.imageSizePresets.map((preset) =>
+              preset.id === id ? { ...preset, ...updates } : preset
+            ),
+          }));
+        },
+
         // Font actions
         toggleFavoriteFont: (fontName) => {
           set((state) => {
@@ -665,7 +727,7 @@ export const useSettingsStore = create<SettingsState>()(
       }),
       {
         name: "cosmetic-carousel-settings-v4",
-        version: 1, // Fresh start - v4: updated default layout positions
+        version: 15, // v4.15: Text box background matches image background color
         partialize: (state) => ({
           apiKeys: state.apiKeys,
           apiSelection: state.apiSelection,
@@ -737,14 +799,150 @@ export const useSettingsStore = create<SettingsState>()(
             }
           }
 
-          // Since we're using a new storage name (cosmetic-carousel-settings-v3),
-          // any old data will be reset to defaults automatically.
-          // Just ensure layoutSettings exists
+          // Migrate to version 6: Update imageSizePresets with margin settings and reels, add content prompts
+          if (version < 6) {
+            // Reset imageSizePresets to new defaults with margins
+            state.imageSizePresets = defaultImageSizePresets;
+
+            // Update layout presets: change "story" to "reels"
+            if (state.layoutSettings?.presets) {
+              state.layoutSettings.presets = state.layoutSettings.presets.map((preset) => {
+                if (preset.imageSizePresetId === "story") {
+                  return { ...preset, imageSizePresetId: "reels", name: preset.name.replace("스토리", "릴스/스토리") };
+                }
+                return preset;
+              });
+            }
+
+            // Add new default content prompts (keep user's custom ones)
+            const existingIds = (state.contentPrompts || []).map(p => p.id);
+            const newDefaults = defaultContentPrompts.filter(p => !existingIds.includes(p.id));
+            state.contentPrompts = [...(state.contentPrompts || []), ...newDefaults];
+
+            // Rename old prompts to new names
+            if (state.contentPrompts) {
+              state.contentPrompts = state.contentPrompts.map(p => {
+                if (p.id === "default-content-1" && (p.name === "전문가 톤" || p.name === "화장품 성분 분석")) {
+                  return { ...p, name: "화장품 성분 소개" };
+                }
+                return p;
+              });
+            }
+          }
+
+          // Migrate to version 7: Force reset content prompts to defaults
+          if (version < 7) {
+            // Completely reset content prompts to ensure all defaults exist
+            state.contentPrompts = defaultContentPrompts;
+            state.selectedContentPromptId = "default-content-1";
+          }
+
+          // Migrate to version 8: Update layout presets (텍스트영역, reduced height) and image prompts
+          if (version < 8) {
+            // Reset layout settings to new defaults with updated positions
+            state.layoutSettings = defaultLayoutSettings;
+
+            // Update default image prompts to include no-text instructions
+            if (state.imagePrompts) {
+              state.imagePrompts = state.imagePrompts.map(p => {
+                if (p.id === "default-1" || p.id === "default-2") {
+                  // Update default prompts with no-text instructions
+                  const defaultPrompt = defaultImagePrompts.find(dp => dp.id === p.id);
+                  if (defaultPrompt) {
+                    return {
+                      ...p,
+                      prompt: defaultPrompt.prompt,
+                      negativePrompt: defaultPrompt.negativePrompt,
+                    };
+                  }
+                }
+                // Add negative prompt to user prompts if not already set
+                if (!p.negativePrompt) {
+                  return {
+                    ...p,
+                    negativePrompt: "text, letters, words, writing, watermark, signature, logo",
+                  };
+                }
+                return p;
+              });
+            }
+          }
+
+          // Migrate to version 9: Separate image and text areas completely
+          if (version < 9) {
+            // Reset layout settings to new defaults with separated image/text areas
+            state.layoutSettings = defaultLayoutSettings;
+          }
+
+          // Migrate to version 10: Add gap between hero image and text box
+          if (version < 10) {
+            // Reset layout settings to new defaults with 2% gap
+            state.layoutSettings = defaultLayoutSettings;
+          }
+
+          // Migrate to version 11: Slim text box (20%), image 80%
+          if (version < 11) {
+            // Reset layout settings to new compact layout
+            state.layoutSettings = defaultLayoutSettings;
+          }
+
+          // Migrate to version 12: Tighter text spacing
+          if (version < 12) {
+            state.layoutSettings = defaultLayoutSettings;
+          }
+
+          // Migrate to version 13: Ultra-tight text box
+          if (version < 13) {
+            state.layoutSettings = defaultLayoutSettings;
+          }
+
+          // Migrate to version 14: Text box 25%, image 75%
+          if (version < 14) {
+            state.layoutSettings = defaultLayoutSettings;
+          }
+
+          // Migrate to version 15: Text box background matches image background
+          if (version < 15) {
+            state.layoutSettings = defaultLayoutSettings;
+          }
+
+          // Ensure layoutSettings exists
           if (!state.layoutSettings || !state.layoutSettings.presets) {
             state.layoutSettings = defaultLayoutSettings;
           }
 
           return state as SettingsState;
+        },
+        onRehydrateStorage: () => (state) => {
+          // After rehydration, ensure default content prompts exist
+          if (state) {
+            const currentPrompts = state.contentPrompts || [];
+            const existingIds = currentPrompts.map(p => p.id);
+            const missingDefaults = defaultContentPrompts.filter(p => !existingIds.includes(p.id));
+
+            if (missingDefaults.length > 0) {
+              // Use setTimeout to avoid state mutation during rehydration
+              setTimeout(() => {
+                useSettingsStore.setState({
+                  contentPrompts: [...currentPrompts, ...missingDefaults],
+                });
+              }, 0);
+            }
+
+            // Also rename if needed
+            const needsRename = currentPrompts.find(p =>
+              p.id === "default-content-1" && (p.name === "전문가 톤" || p.name === "화장품 성분 분석")
+            );
+            if (needsRename) {
+              setTimeout(() => {
+                useSettingsStore.setState({
+                  contentPrompts: currentPrompts.map(p =>
+                    p.id === "default-content-1" ? { ...p, name: "화장품 성분 소개" } : p
+                  ),
+                });
+              }, 0);
+            }
+          }
         },
       }
     ),

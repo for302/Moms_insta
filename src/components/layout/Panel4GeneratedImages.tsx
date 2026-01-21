@@ -355,13 +355,36 @@ export default function Panel4GeneratedImages({ className = "" }: Panel4Props) {
                   );
                 })()}
 
-                {/* LLM 생성 이미지 (z-index: 1) */}
-                <img
-                  src={getImageSrc(currentImage)}
-                  alt="Generated"
-                  className="absolute w-full h-full object-cover"
-                  style={{ zIndex: 1 }}
-                />
+                {/* LLM 생성 이미지 - hero_image 영역에만 표시 (z-index: 1) */}
+                {(() => {
+                  const heroEl = currentPreset?.elements.find((e) => e.id === "hero_image");
+                  if (heroEl?.enabled) {
+                    return (
+                      <img
+                        src={getImageSrc(currentImage)}
+                        alt="Generated"
+                        className="absolute"
+                        style={{
+                          zIndex: 1,
+                          left: `${heroEl.x}%`,
+                          top: `${heroEl.y}%`,
+                          width: `${heroEl.width}%`,
+                          height: `${heroEl.height}%`,
+                          objectFit: "cover",
+                        }}
+                      />
+                    );
+                  }
+                  // Fallback: 전체 크기
+                  return (
+                    <img
+                      src={getImageSrc(currentImage)}
+                      alt="Generated"
+                      className="absolute w-full h-full object-cover"
+                      style={{ zIndex: 1 }}
+                    />
+                  );
+                })()}
 
                 {/* 오버레이 요소들 (도형, 텍스트) */}
                 {displayContent && currentPreset && downloadOption === "imageText" && (() => {

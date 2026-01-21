@@ -52,15 +52,40 @@ export default function LayoutCanvas({
       className="relative bg-white rounded-lg overflow-hidden border-2 border-gray-300 mx-auto"
       style={{ width: canvasWidth, height: canvasHeight }}
     >
-      {/* Background Image (for Panel4 edit mode) */}
-      {backgroundImage && (
-        <img
-          src={backgroundImage}
-          alt="Background"
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ zIndex: 0 }}
-        />
-      )}
+      {/* Background Image (for Panel4 edit mode) - renders within hero_image bounds */}
+      {backgroundImage && (() => {
+        const heroEl = preset.elements.find(e => e.id === "hero_image" && e.enabled);
+        if (heroEl) {
+          const heroX = (heroEl.x / 100) * canvasWidth;
+          const heroY = (heroEl.y / 100) * canvasHeight;
+          const heroW = (heroEl.width / 100) * canvasWidth;
+          const heroH = (heroEl.height / 100) * canvasHeight;
+          return (
+            <img
+              src={backgroundImage}
+              alt="Hero"
+              className="absolute"
+              style={{
+                left: heroX,
+                top: heroY,
+                width: heroW,
+                height: heroH,
+                zIndex: 0,
+                objectFit: "fill", // 히어로 영역에 맞게 크기 조절
+              }}
+            />
+          );
+        }
+        // Fallback: full canvas if no hero_image
+        return (
+          <img
+            src={backgroundImage}
+            alt="Background"
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ zIndex: 0 }}
+          />
+        );
+      })()}
 
       {/* Grid Lines */}
       {showGridLines && (
@@ -71,6 +96,59 @@ export default function LayoutCanvas({
           style={{ zIndex: 10 }}
         >
           {gridLines}
+        </svg>
+      )}
+
+      {/* Margin Guidelines */}
+      {showGridLines && sizePreset.marginHorizontal && sizePreset.marginVertical && (
+        <svg
+          className="absolute inset-0 pointer-events-none"
+          width={canvasWidth}
+          height={canvasHeight}
+          style={{ zIndex: 11 }}
+        >
+          {/* 좌우 여백 가이드라인 */}
+          <line
+            x1={(sizePreset.marginHorizontal / sizePreset.width) * canvasWidth}
+            y1={0}
+            x2={(sizePreset.marginHorizontal / sizePreset.width) * canvasWidth}
+            y2={canvasHeight}
+            stroke="#F97316"
+            strokeWidth={1.5}
+            strokeDasharray="6,3"
+            opacity={0.7}
+          />
+          <line
+            x1={canvasWidth - (sizePreset.marginHorizontal / sizePreset.width) * canvasWidth}
+            y1={0}
+            x2={canvasWidth - (sizePreset.marginHorizontal / sizePreset.width) * canvasWidth}
+            y2={canvasHeight}
+            stroke="#F97316"
+            strokeWidth={1.5}
+            strokeDasharray="6,3"
+            opacity={0.7}
+          />
+          {/* 상하 여백 가이드라인 */}
+          <line
+            x1={0}
+            y1={(sizePreset.marginVertical / sizePreset.height) * canvasHeight}
+            x2={canvasWidth}
+            y2={(sizePreset.marginVertical / sizePreset.height) * canvasHeight}
+            stroke="#F97316"
+            strokeWidth={1.5}
+            strokeDasharray="6,3"
+            opacity={0.7}
+          />
+          <line
+            x1={0}
+            y1={canvasHeight - (sizePreset.marginVertical / sizePreset.height) * canvasHeight}
+            x2={canvasWidth}
+            y2={canvasHeight - (sizePreset.marginVertical / sizePreset.height) * canvasHeight}
+            stroke="#F97316"
+            strokeWidth={1.5}
+            strokeDasharray="6,3"
+            opacity={0.7}
+          />
         </svg>
       )}
 

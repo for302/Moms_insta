@@ -181,7 +181,7 @@ export function useLayoutEditor({
 // Generate layout description prompt
 export function generateLayoutPrompt(
   preset: LayoutPreset,
-  sizePreset: { width: number; height: number }
+  sizePreset: ImageSizePreset
 ): string {
   const heroImage = preset.elements.find((el) => el.id === "hero_image" && el.enabled);
   const title = preset.elements.find((el) => el.id === "title" && el.enabled);
@@ -191,6 +191,11 @@ export function generateLayoutPrompt(
   const lines: string[] = [];
 
   lines.push(`이미지 크기: ${sizePreset.width}x${sizePreset.height}px`);
+
+  // 여백 정보 추가
+  const marginH = sizePreset.marginHorizontal ?? 120;
+  const marginV = sizePreset.marginVertical ?? 80;
+  lines.push(`최소 여백: 좌우 ${marginH}px, 상하 ${marginV}px`);
 
   if (heroImage) {
     lines.push(

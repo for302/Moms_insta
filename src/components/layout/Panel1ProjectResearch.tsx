@@ -18,10 +18,13 @@ import {
   Zap,
   Check,
   X,
+  FileText,
+  Settings,
 } from "lucide-react";
 import ProjectListModal from "../modals/ProjectListModal";
 import ProjectCreateModal from "../modals/ProjectCreateModal";
 import ResearchListModal from "../modals/ResearchListModal";
+import SettingsModal, { SettingsTab } from "../settings/SettingsModal";
 
 interface Panel1Props {
   className?: string;
@@ -31,12 +34,19 @@ export default function Panel1ProjectResearch({ className = "" }: Panel1Props) {
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [isProjectCreateModalOpen, setIsProjectCreateModalOpen] = useState(false);
   const [isResearchModalOpen, setIsResearchModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [settingsInitialTab, setSettingsInitialTab] = useState<SettingsTab>("content-prompts");
   const [expandedResearchId, setExpandedResearchId] = useState<string | null>(null);
   const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
   const [isEditingProjectName, setIsEditingProjectName] = useState(false);
   const [editingProjectName, setEditingProjectName] = useState("");
   const [isBatchProcessing, setIsBatchProcessing] = useState(false);
+
+  const openSettingsModal = (tab: SettingsTab) => {
+    setSettingsInitialTab(tab);
+    setIsSettingsModalOpen(true);
+  };
 
   const { currentProject, updateProjectName } = useProjectStore();
   const {
@@ -55,7 +65,11 @@ export default function Panel1ProjectResearch({ className = "" }: Panel1Props) {
     setResearchLimit,
   } = useKeywordStore();
   const { generateContent } = useContentStore();
-  const { selectedContentPromptId } = useSettingsStore();
+  const {
+    contentPrompts,
+    selectedContentPromptId,
+    setSelectedContentPrompt
+  } = useSettingsStore();
 
   const handleStartResearch = async () => {
     if (!researchPrompt.trim()) return;
@@ -116,7 +130,39 @@ export default function Panel1ProjectResearch({ className = "" }: Panel1Props) {
 
   return (
     <aside className={`bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col overflow-hidden ${className}`}>
-      {/* 0. 프로젝트 섹션 */}
+      {/* 0. 콘텐츠 주제 (프롬프트) 선택 */}
+      <div className="p-4 border-b border-gray-200">
+        <div className="flex items-center gap-2 mb-2">
+          <FileText className="w-4 h-4 text-green-600" />
+          <span className="font-medium text-gray-700">콘텐츠 주제</span>
+          <button
+            onClick={() => openSettingsModal("content-prompts")}
+            className="ml-auto p-1 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+            title="프롬프트 설정"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
+        </div>
+        <select
+          value={selectedContentPromptId || ""}
+          onChange={(e) => setSelectedContentPrompt(e.target.value || null)}
+          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+        >
+          <option value="">프롬프트 선택...</option>
+          {contentPrompts.map((prompt) => (
+            <option key={prompt.id} value={prompt.id}>
+              {prompt.name}
+            </option>
+          ))}
+        </select>
+        {selectedContentPromptId && (
+          <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+            {contentPrompts.find(p => p.id === selectedContentPromptId)?.prompt.slice(0, 100)}...
+          </p>
+        )}
+      </div>
+
+      {/* 1. 프로젝트 섹션 */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center gap-2 mb-3">
           <FolderOpen className="w-4 h-4 text-purple-600" />
@@ -259,7 +305,7 @@ export default function Panel1ProjectResearch({ className = "" }: Panel1Props) {
           </button>
           <button
             onClick={handleBatchProcess}
-            disabled={isLoadingResearch || isBatchProcessing || !researchPrompt.trim() || !researchSources.some(s => s.enabled)}
+            disabled={isLoadingResearch || isBatchProcessing || !researchPrompt.trim() || !researchSources.some(s => s.enabled) || !selectedContentPromptId}
             className="flex-1 px-3 py-2 bg-gradient-to-r from-blue-600 to-green-600 text-white text-sm rounded-lg hover:from-blue-700 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
             title="자료조사 후 자동으로 콘텐츠 기획까지 진행"
           >
@@ -398,6 +444,11 @@ export default function Panel1ProjectResearch({ className = "" }: Panel1Props) {
       <ResearchListModal
         isOpen={isResearchModalOpen}
         onClose={() => setIsResearchModalOpen(false)}
+      />
+      <SettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        initialTab={settingsInitialTab}
       />
     </aside>
   );

@@ -24,12 +24,21 @@ pub async fn generate_image(
     let google_model = model.unwrap_or_else(|| "imagen-4.0-generate-001".to_string());
     let img_aspect_ratio = aspect_ratio.unwrap_or_else(|| "1:1".to_string());
 
-    // Combine image concept with style prompt (if provided)
+    // Combine style prompt with image concept for optimal image generation
     let final_prompt = if request.style_prompt.is_empty() {
-        request.image_concept.clone()
+        format!("Create an illustration: {}. No text, no letters, no words in the image.", request.image_concept)
     } else {
-        format!("{}\n\nStyle: {}", request.image_concept, request.style_prompt)
+        // Style prompt defines the visual style, image concept defines the scene
+        format!(
+            "{}\n\nScene description: {}\n\nIMPORTANT: Do not include any text, letters, words, or writing in the image. Pure illustration only.",
+            request.style_prompt,
+            request.image_concept
+        )
     };
+
+    println!("=== Final Image Prompt ===");
+    println!("{}", final_prompt);
+    println!("========================");
 
     let image_id = Uuid::new_v4().to_string();
 

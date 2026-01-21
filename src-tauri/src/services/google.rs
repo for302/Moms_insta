@@ -443,17 +443,11 @@ impl GoogleService {
         );
 
         // Build request body following official API structure
-        let mut parameters = json!({
+        // Note: negativePrompt is no longer supported in Imagen 4, so we don't include it
+        let parameters = json!({
             "sampleCount": 1,
             "aspectRatio": aspect_ratio
         });
-
-        // Add negative prompt if provided
-        if let Some(neg) = negative_prompt {
-            if !neg.is_empty() {
-                parameters["negativePrompt"] = json!(neg);
-            }
-        }
 
         let request_body = json!({
             "instances": [{

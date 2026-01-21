@@ -15,6 +15,7 @@ export default function LayoutSettingsComponent() {
     updateLayoutPreset,
     deleteLayoutPreset,
     setSelectedLayoutPreset,
+    updateImageSizePreset,
   } = useSettingsStore();
 
   const [isSaving, setIsSaving] = useState(false);
@@ -85,6 +86,10 @@ export default function LayoutSettingsComponent() {
     updateLayoutPreset(currentPreset.id, { imageSizePresetId: sizePresetId });
   };
 
+  const handleMarginChange = (sizePresetId: string, marginHorizontal: number, marginVertical: number) => {
+    updateImageSizePreset(sizePresetId, { marginHorizontal, marginVertical });
+  };
+
   const handleTextStyleChange = (elementId: string, updates: Partial<TextStyle>) => {
     const element = currentPreset?.elements.find((el) => el.id === elementId);
     if (!element) return;
@@ -135,6 +140,7 @@ export default function LayoutSettingsComponent() {
           onDuplicate={handleDuplicatePreset}
           onDelete={deleteLayoutPreset}
           onSizeChange={handleSizePresetChange}
+          onMarginChange={handleMarginChange}
         />
 
         {/* 요소 설정 (2열 그리드) */}

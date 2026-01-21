@@ -18,12 +18,7 @@ import ApiSelectionSettings from "./ApiSelectionSettings";
 import LayoutSettingsComponent from "./LayoutSettings";
 import FontSettings from "./FontSettings";
 
-interface SettingsModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-type SettingsTab =
+export type SettingsTab =
   | "api-keys"
   | "api-selection"
   | "image-prompts"
@@ -31,6 +26,12 @@ type SettingsTab =
   | "layout-settings"
   | "font-settings"
   | "save-path";
+
+interface SettingsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  initialTab?: SettingsTab;
+}
 
 const tabs: { id: SettingsTab; label: string; icon: React.ReactNode }[] = [
   {
@@ -62,9 +63,16 @@ const tabs: { id: SettingsTab; label: string; icon: React.ReactNode }[] = [
   },
 ];
 
-export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
-  const [activeTab, setActiveTab] = useState<SettingsTab>("layout-settings");
+export default function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProps) {
+  const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab || "layout-settings");
   const { loadSettings, isLoaded } = useSettingsStore();
+
+  // Update active tab when initialTab changes
+  useEffect(() => {
+    if (initialTab && isOpen) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab, isOpen]);
 
   useEffect(() => {
     if (isOpen && !isLoaded) {
