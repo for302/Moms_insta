@@ -6,7 +6,14 @@
       "Bash(npm run tauri:*)",
       "Bash(powershell.exe -Command \"cd D:\\\\Dev\\\\Moms_Insta; npm run tauri dev\")",
       "Bash(powershell.exe -Command \"where.exe cargo; where.exe rustup; Test-Path $env:USERPROFILE\\\\.cargo\\\\bin\\\\cargo.exe\")",
-      "Bash(powershell.exe -Command \"Invoke-WebRequest -Uri ''https://win.rustup.rs/x86_64'' -OutFile ''$env:TEMP\\\\rustup-init.exe''; Start-Process -FilePath ''$env:TEMP\\\\rustup-init.exe'' -Wait\")"
+      "Bash(powershell.exe -Command \"Invoke-WebRequest -Uri ''https://win.rustup.rs/x86_64'' -OutFile ''$env:TEMP\\\\rustup-init.exe''; Start-Process -FilePath ''$env:TEMP\\\\rustup-init.exe'' -Wait\")",
+      "Bash(npm run build:*)",
+      "Bash(powershell -Command \"$input | Select-Object -Last 200\")",
+      "Bash(powershell -Command:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(npm install:*)"
     ]
   }
 }

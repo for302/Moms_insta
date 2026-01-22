@@ -111,7 +111,7 @@ export default function Panel2ContentPlan({ className = "" }: Panel2Props) {
           className="w-full px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           <Wand2 className="w-4 h-4" />
-          {isGenerating ? "생성 중..." : "콘텐츠 기획하기 (20개)"}
+          {isGenerating ? "생성 중..." : "콘텐츠 기획하기 (10개)"}
         </button>
       </div>
 

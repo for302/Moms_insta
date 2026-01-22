@@ -156,7 +156,13 @@ export const useContentStore = create<ContentState>()(
           const settings = useSettingsStore.getState();
           const provider = settings.apiSelection.contentApi;
           const apiKey = settings.apiKeys[provider as keyof typeof settings.apiKeys];
-          const researchData = get().researchData;
+
+          // Get filtered research data (excluding user-deselected sources)
+          const keywordState = useKeywordStore.getState();
+          const selectedResearchId = Array.from(keywordState.selectedResearchIds)[0];
+          const researchData = selectedResearchId
+            ? keywordState.getFilteredResearchData(selectedResearchId)
+            : get().researchData;
 
           if (!apiKey) {
             updateStep("설정 확인", "error", `${provider} API 키가 설정되지 않았습니다`);

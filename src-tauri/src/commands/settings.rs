@@ -571,3 +571,15 @@ pub async fn open_folder_in_explorer(path: String) -> Result<(), String> {
 
     Ok(())
 }
+
+#[tauri::command]
+pub async fn open_external_url(url: String) -> Result<(), String> {
+    if url.trim().is_empty() {
+        return Err("URL이 비어있습니다.".to_string());
+    }
+
+    opener::open(&url)
+        .map_err(|e| format!("URL을 열 수 없습니다: {}", e))?;
+
+    Ok(())
+}

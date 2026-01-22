@@ -727,3 +727,27 @@ export async function deleteImageFile(path: string): Promise<void> {
 export async function openFolderInExplorer(path: string): Promise<void> {
   return invoke<void>("open_folder_in_explorer", { path });
 }
+
+/**
+ * Open external URL in the default browser
+ */
+export async function openExternalUrl(url: string): Promise<void> {
+  try {
+    await invoke<void>("open_external_url", { url });
+  } catch (e) {
+    console.error("Failed to open external URL:", e);
+    // Fallback to window.open if invoke fails
+    window.open(url, "_blank");
+  }
+}
+
+/**
+ * Translate text to Korean using LLM
+ */
+export async function translateToKorean(
+  text: string,
+  apiKey: string,
+  provider: string
+): Promise<string> {
+  return invoke<string>("translate_to_korean", { text, apiKey, provider });
+}

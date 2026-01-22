@@ -54,9 +54,9 @@ export interface ResearchSource {
 
 export const defaultResearchSources: ResearchSource[] = [
   { type: "papers", label: "논문", enabled: true },
-  { type: "conferences", label: "학회", enabled: false },
-  { type: "web", label: "웹검색", enabled: false },
-  { type: "news", label: "뉴스", enabled: false },
+  { type: "conferences", label: "학회", enabled: true },
+  { type: "web", label: "웹검색", enabled: false },  // Google Search Engine ID 설정 필요
+  { type: "news", label: "뉴스", enabled: true },
 ];
 
 interface KeywordState {
@@ -73,6 +73,7 @@ interface KeywordState {
   researchPrompt: string;
   researchHistory: ResearchItem[];
   selectedResearchIds: Set<string>;
+  excludedSourceIds: Set<string>; // 제외할 개별 자료 ID
 
   // Research Sources
   researchSources: ResearchSource[];
@@ -101,6 +102,12 @@ interface KeywordState {
   toggleResearchSource: (type: ResearchSourceType) => void;
   setResearchLimit: (limit: number) => void;
   getEnabledSources: () => ResearchSourceType[];
+
+  // Excluded Sources Actions
+  toggleExcludedSource: (id: string) => void;
+  isSourceExcluded: (id: string) => boolean;
+  clearExcludedSources: () => void;
+  getFilteredResearchData: (researchId: string) => string;
 }
 
 const generateId = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -125,6 +132,7 @@ export const useKeywordStore = create<KeywordState>()(
       researchPrompt: "",
       researchHistory: [],
       selectedResearchIds: new Set<string>(),
+      excludedSourceIds: new Set<string>(),
 
       // Research Sources State
       researchSources: [...defaultResearchSources],
@@ -541,7 +549,12 @@ JSON 형식으로 응답해주세요.`;
             source: p?.source || "",
             citationCount: p?.citationCount ?? p?.citation_count ?? undefined,
             doi: p?.doi ?? undefined,
-            url: p?.doi ? `https://doi.org/${p.doi}` : undefined,
+            // doi 필드가 이미 전체 URL인 경우 그대로 사용, 아니면 DOI URL 생성
+            url: p?.doi
+              ? p.doi.startsWith("http")
+                ? p.doi
+                : `https://doi.org/${p.doi}`
+              : undefined,
           }));
 
           // Create sources from all results
@@ -781,6 +794,74 @@ JSON 형식으로 응답해주세요.`;
       getEnabledSources: () => {
         const { researchSources } = get();
         return researchSources.filter((s) => s.enabled).map((s) => s.type);
+      },
+
+      // Excluded Sources Actions
+      toggleExcludedSource: (id: string) => {
+        set((state) => {
+          const newSet = new Set(state.excludedSourceIds);
+          if (newSet.has(id)) {
+            newSet.delete(id);
+          } else {
+            newSet.add(id);
+          }
+          return { excludedSourceIds: newSet };
+        });
+      },
+
+      isSourceExcluded: (id: string) => {
+        return get().excludedSourceIds.has(id);
+      },
+
+      clearExcludedSources: () => {
+        set({ excludedSourceIds: new Set<string>() });
+      },
+
+      getFilteredResearchData: (researchId: string) => {
+        const { researchHistory, excludedSourceIds } = get();
+        const research = researchHistory.find((r) => r.id === researchId);
+        if (!research) return "";
+
+        const report = research.fullReport;
+        const parts: string[] = [];
+
+        // 성분 분석 (항상 포함)
+        if (report.ingredientAnalysis) {
+          parts.push(`성분: ${report.ingredientAnalysis.ingredientName}`);
+          parts.push(`EWG 등급: ${report.ingredientAnalysis.ewgScore ?? "N/A"}`);
+          parts.push(`효능: ${report.ingredientAnalysis.benefits.join(", ")}`);
+          parts.push(`주의사항: ${report.ingredientAnalysis.cautions.join(", ")}`);
+        }
+
+        // 논문 (제외되지 않은 것만)
+        const includedPapers = report.papers.filter((p) => !excludedSourceIds.has(p.id));
+        if (includedPapers.length > 0) {
+          parts.push(`\n관련 논문 (${includedPapers.length}건):`);
+          includedPapers.forEach((p) => {
+            parts.push(`- ${p.title}`);
+            if (p.abstract) parts.push(`  요약: ${p.abstract.slice(0, 200)}...`);
+          });
+        }
+
+        // 학회 (제외되지 않은 것만)
+        const includedConfs = report.conferences?.filter((c) => !excludedSourceIds.has(c.id)) || [];
+        if (includedConfs.length > 0) {
+          parts.push(`\n학회 자료 (${includedConfs.length}건):`);
+          includedConfs.forEach((c) => {
+            parts.push(`- ${c.title}`);
+          });
+        }
+
+        // 뉴스 (제외되지 않은 것만)
+        const includedNews = report.news?.filter((n) => !excludedSourceIds.has(n.link)) || [];
+        if (includedNews.length > 0) {
+          parts.push(`\n뉴스 (${includedNews.length}건):`);
+          includedNews.forEach((n) => {
+            parts.push(`- ${n.title}: ${n.description?.slice(0, 100) || ""}`);
+          });
+        }
+
+        return parts.join("\n");
       },
     }),
     { name: "keyword-store" }

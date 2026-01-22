@@ -63,6 +63,8 @@ export default function Panel1ProjectResearch({ className = "" }: Panel1Props) {
     toggleResearchSource,
     researchLimit,
     setResearchLimit,
+    excludedSourceIds,
+    toggleExcludedSource,
   } = useKeywordStore();
   const { generateContent } = useContentStore();
   const {
@@ -394,26 +396,90 @@ export default function Panel1ProjectResearch({ className = "" }: Panel1Props) {
                       </div>
                     </>
                   )}
-                  <div className="text-xs">
-                    <span className="font-medium text-gray-700">관련 논문: </span>
-                    <span className="text-gray-600">{item.fullReport.papers.length}개</span>
-                  </div>
-                  {item.fullReport.papers.slice(0, 2).map((paper) => (
-                    <div key={paper.id} className="text-xs bg-white p-2 rounded border">
-                      <div className="font-medium text-gray-700 line-clamp-1">{paper.title}</div>
-                      <div className="text-gray-500">{paper.source}</div>
-                      {paper.doi && (
-                        <a
-                          href={`https://doi.org/${paper.doi}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-500 hover:underline flex items-center gap-1"
+
+                  {/* 논문 목록 */}
+                  {item.fullReport.papers.length > 0 && (
+                    <div className="space-y-1">
+                      <div className="text-xs font-medium text-gray-700 flex items-center justify-between">
+                        <span>논문 ({item.fullReport.papers.filter(p => !excludedSourceIds.has(p.id)).length}/{item.fullReport.papers.length})</span>
+                      </div>
+                      {item.fullReport.papers.map((paper) => (
+                        <label
+                          key={paper.id}
+                          className={`text-xs bg-white p-2 rounded border flex items-start gap-2 cursor-pointer hover:bg-gray-50 ${
+                            excludedSourceIds.has(paper.id) ? "opacity-50" : ""
+                          }`}
                         >
-                          DOI <ExternalLink className="w-3 h-3" />
-                        </a>
-                      )}
+                          <input
+                            type="checkbox"
+                            checked={!excludedSourceIds.has(paper.id)}
+                            onChange={() => toggleExcludedSource(paper.id)}
+                            className="mt-0.5 w-3.5 h-3.5 text-blue-600 border-gray-300 rounded cursor-pointer"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-gray-700 line-clamp-1">{paper.title}</div>
+                            <div className="text-gray-500">{paper.source}</div>
+                          </div>
+                        </label>
+                      ))}
                     </div>
-                  ))}
+                  )}
+
+                  {/* 뉴스 목록 */}
+                  {item.fullReport.news && item.fullReport.news.length > 0 && (
+                    <div className="space-y-1">
+                      <div className="text-xs font-medium text-gray-700">
+                        뉴스 ({item.fullReport.news.filter(n => !excludedSourceIds.has(n.link)).length}/{item.fullReport.news.length})
+                      </div>
+                      {item.fullReport.news.map((news, idx) => (
+                        <label
+                          key={news.link || idx}
+                          className={`text-xs bg-white p-2 rounded border flex items-start gap-2 cursor-pointer hover:bg-gray-50 ${
+                            excludedSourceIds.has(news.link) ? "opacity-50" : ""
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={!excludedSourceIds.has(news.link)}
+                            onChange={() => toggleExcludedSource(news.link)}
+                            className="mt-0.5 w-3.5 h-3.5 text-blue-600 border-gray-300 rounded cursor-pointer"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-gray-700 line-clamp-1">{news.title}</div>
+                            <div className="text-gray-500 text-[10px]">{news.source}</div>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* 학회 목록 */}
+                  {item.fullReport.conferences && item.fullReport.conferences.length > 0 && (
+                    <div className="space-y-1">
+                      <div className="text-xs font-medium text-gray-700">
+                        학회 ({item.fullReport.conferences.filter(c => !excludedSourceIds.has(c.id)).length}/{item.fullReport.conferences.length})
+                      </div>
+                      {item.fullReport.conferences.map((conf) => (
+                        <label
+                          key={conf.id}
+                          className={`text-xs bg-white p-2 rounded border flex items-start gap-2 cursor-pointer hover:bg-gray-50 ${
+                            excludedSourceIds.has(conf.id) ? "opacity-50" : ""
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={!excludedSourceIds.has(conf.id)}
+                            onChange={() => toggleExcludedSource(conf.id)}
+                            className="mt-0.5 w-3.5 h-3.5 text-blue-600 border-gray-300 rounded cursor-pointer"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-gray-700 line-clamp-1">{conf.title}</div>
+                            <div className="text-gray-500">{conf.source}</div>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

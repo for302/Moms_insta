@@ -200,3 +200,34 @@ fn generate_fallback_content(keyword: &str, count: usize) -> Vec<FallbackContent
         })
         .collect()
 }
+
+#[tauri::command]
+pub async fn translate_to_korean(
+    text: String,
+    api_key: String,
+    provider: String,
+) -> Result<String, String> {
+    if text.trim().is_empty() {
+        return Ok(text);
+    }
+
+    let system_prompt = "You are a professional translator. Translate the given English text to Korean. Only output the translated text, nothing else. Keep the translation natural and accurate.";
+    let prompt = format!("Translate the following text to Korean:\n\n{}", text);
+
+    let response = match provider.as_str() {
+        "anthropic" => {
+            let service = AnthropicService::new(&api_key);
+            service.generate_text(&prompt, Some(system_prompt)).await?
+        }
+        "google" => {
+            let service = GoogleService::new(&api_key);
+            service.generate_text(&prompt, Some(system_prompt)).await?
+        }
+        _ => {
+            let service = OpenAIService::new(&api_key);
+            service.generate_text(&prompt, Some(system_prompt)).await?
+        }
+    };
+
+    Ok(response.trim().to_string())
+}

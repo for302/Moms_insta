@@ -22,6 +22,7 @@ pub fn run() {
             // Content commands
             content::generate_content_plan,
             content::create_persona,
+            content::translate_to_korean,
             // Image commands
             image::generate_image,
             image::generate_batch_images,
@@ -44,6 +45,7 @@ pub fn run() {
             settings::get_system_fonts,
             settings::delete_image_file,
             settings::open_folder_in_explorer,
+            settings::open_external_url,
             // Project commands
             project::create_project,
             project::load_project,
