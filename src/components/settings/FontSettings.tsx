@@ -85,6 +85,16 @@ const koreanFontNames: Record<string, string> = {
   "LINESeed": "라인 시드",
   "Wanted Sans": "원티드 산스",
   "WantedSans": "원티드 산스",
+  // 페이퍼로지 폰트
+  "Paperlogy": "페이퍼로지",
+  "Paperlogy Thin": "페이퍼로지 Thin",
+  "Paperlogy ExtraLight": "페이퍼로지 ExtraLight",
+  "Paperlogy Light": "페이퍼로지 Light",
+  "Paperlogy Medium": "페이퍼로지 Medium",
+  "Paperlogy SemiBold": "페이퍼로지 SemiBold",
+  "Paperlogy Bold": "페이퍼로지 Bold",
+  "Paperlogy ExtraBold": "페이퍼로지 ExtraBold",
+  "Paperlogy Black": "페이퍼로지 Black",
 };
 
 // 한글 표시명 가져오기

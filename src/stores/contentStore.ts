@@ -172,7 +172,7 @@ export const useContentStore = create<ContentState>()(
           updateStep("캐릭터 생성", "done", `캐릭터: ${characterName}`);
 
           // Step 3: 콘텐츠 기획 중
-          updateStep("콘텐츠 기획 중", "loading", "LLM이 20개의 콘텐츠를 기획하고 있습니다...");
+          updateStep("콘텐츠 기획 중", "loading", "LLM이 10개의 콘텐츠를 기획하고 있습니다...");
 
           // Get the selected prompt template
           const promptTemplate = settings.contentPrompts.find((p) => p.id === promptId);
@@ -185,17 +185,17 @@ export const useContentStore = create<ContentState>()(
 ${promptTemplate?.prompt || "콘텐츠 기획 프롬프트"}
 
 캐릭터명: ${characterName}
-생성 개수: 20개
+생성 개수: 10개
 
 ${researchData ? `\n자료조사 데이터:\n${researchData}` : ""}
 
-위 정보를 바탕으로 20개의 인스타그램 콘텐츠를 기획해주세요.
+위 정보를 바탕으로 10개의 인스타그램 콘텐츠를 기획해주세요.
 각 콘텐츠는 title, content, imageConcept를 포함해야 합니다.`;
 
           console.log("Content generation request:", {
             keyword,
             promptId,
-            count: 20,
+            count: 10,
             provider,
             hasApiKey: !!apiKey,
             hasResearchData: !!researchData,
@@ -213,7 +213,7 @@ ${researchData ? `\n자료조사 데이터:\n${researchData}` : ""}
               keyword,
               promptId,
               promptName,
-              count: 20,
+              count: 10,
               hasResearchData: !!researchData,
             },
           });
@@ -228,7 +228,7 @@ ${researchData ? `\n자료조사 데이터:\n${researchData}` : ""}
           const planItems = await tauriApi.generateContentPlan({
             keyword,
             prompt_id: promptId,
-            count: 20,
+            count: 10,
             api_key: apiKey,
             llm_provider: provider,
             research_data: researchData || undefined,

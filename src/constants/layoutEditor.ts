@@ -6,6 +6,15 @@ export const GRID_PX = 5;
 // Available font options for text elements
 export const fontOptions = [
   // 한글 폰트
+  "Paperlogy",
+  "Paperlogy Thin",
+  "Paperlogy ExtraLight",
+  "Paperlogy Light",
+  "Paperlogy Medium",
+  "Paperlogy SemiBold",
+  "Paperlogy Bold",
+  "Paperlogy ExtraBold",
+  "Paperlogy Black",
   "Pretendard",
   "Noto Sans KR",
   "Noto Serif KR",

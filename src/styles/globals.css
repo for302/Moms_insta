@@ -2,6 +2,62 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Paperlogy Font Family */
+@font-face {
+  font-family: 'Paperlogy Thin';
+  src: url('/font/Paperlogy/Paperlogy-1Thin.ttf') format('truetype');
+  font-weight: 100;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Paperlogy ExtraLight';
+  src: url('/font/Paperlogy/Paperlogy-2ExtraLight.ttf') format('truetype');
+  font-weight: 200;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Paperlogy Light';
+  src: url('/font/Paperlogy/Paperlogy-3Light.ttf') format('truetype');
+  font-weight: 300;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Paperlogy';
+  src: url('/font/Paperlogy/Paperlogy-4Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Paperlogy Medium';
+  src: url('/font/Paperlogy/Paperlogy-5Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Paperlogy SemiBold';
+  src: url('/font/Paperlogy/Paperlogy-6SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Paperlogy Bold';
+  src: url('/font/Paperlogy/Paperlogy-7Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Paperlogy ExtraBold';
+  src: url('/font/Paperlogy/Paperlogy-8ExtraBold.ttf') format('truetype');
+  font-weight: 800;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Paperlogy Black';
+  src: url('/font/Paperlogy/Paperlogy-9Black.ttf') format('truetype');
+  font-weight: 900;
+  font-display: swap;
+}
+
 :root {
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
   font-size: 16px;

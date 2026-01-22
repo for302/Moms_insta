@@ -56,10 +56,12 @@ interface ImageState {
   setImages: (images: GeneratedImage[]) => void;
   addImage: (image: GeneratedImage) => void;
   deleteImage: (imageId: string) => void;
+  updateTextOverlay: (imageId: string, textOverlay: Partial<GeneratedImage["textOverlay"]>) => void;
   setCurrentIndex: (index: number) => void;
   nextImage: () => void;
   previousImage: () => void;
   generateImages: (contentIds: string[]) => Promise<void>;
+  regenerateImage: (imageId: string) => Promise<void>;
   downloadCurrent: (withText: boolean) => Promise<void>;
   downloadAll: (withText: boolean) => Promise<void>;
   clearImages: () => void;
@@ -109,6 +111,25 @@ export const useImageStore = create<ImageState>()(
           }
           return { images: newImages, currentIndex: newIndex };
         }),
+
+      updateTextOverlay: (imageId, textOverlay) =>
+        set((state) => ({
+          images: state.images.map((img) =>
+            img.id === imageId
+              ? {
+                  ...img,
+                  textOverlay: img.textOverlay
+                    ? { ...img.textOverlay, ...textOverlay }
+                    : {
+                        characterName: textOverlay.characterName || "",
+                        journalNumber: textOverlay.journalNumber || 1,
+                        title: textOverlay.title || "",
+                        content: textOverlay.content || "",
+                      },
+                }
+              : img
+          ),
+        })),
 
       setCurrentIndex: (index) => set({ currentIndex: index }),
 
@@ -313,16 +334,37 @@ ${requests.map((r, i) => {
             // Update content item status
             useContentStore.getState().updateItemStatus(request.content_id, "generating");
 
-            // Call Tauri backend (pass model, aspectRatio, negativePrompt for Google provider)
+            // Call Tauri backend with retry logic
             const modelToUse = provider === "google" ? googleImageModel : undefined;
-            const result = await tauriApi.generateImage(
-              request,
-              apiKey,
-              provider,
-              modelToUse,
-              aspectRatio,
-              finalNegativePrompt || undefined
-            );
+            let result;
+            let retryCount = 0;
+            const maxRetries = 2;
+
+            while (retryCount <= maxRetries) {
+              try {
+                result = await tauriApi.generateImage(
+                  request,
+                  apiKey,
+                  provider,
+                  modelToUse,
+                  aspectRatio,
+                  finalNegativePrompt || undefined
+                );
+                break; // Success, exit retry loop
+              } catch (retryError) {
+                retryCount++;
+                if (retryCount > maxRetries) {
+                  throw retryError; // All retries failed
+                }
+                console.warn(`Image generation attempt ${retryCount} failed, retrying...`);
+                // Wait before retry (1 second)
+                await new Promise(resolve => setTimeout(resolve, 1000));
+              }
+            }
+
+            if (!result) {
+              throw new Error("이미지 생성 결과가 없습니다");
+            }
 
             // Auto-save image to project folder or default save path
             let localPath = result.local_path ?? undefined;
@@ -385,30 +427,15 @@ ${requests.map((r, i) => {
             console.error(`Failed to generate image ${i + 1}:`, error);
             useContentStore.getState().updateItemStatus(request.content_id, "error");
 
-            // Create fallback mock image
-            const mockImage: GeneratedImage = {
-              id: `image-${Date.now()}-${i}`,
-              contentId: request.content_id,
-              url: `https://picsum.photos/1024/1024?random=${Date.now()}-${i}`,
-              textOverlay: content
-                ? {
-                    characterName: content.characterName,
-                    journalNumber: content.journalNumber,
-                    title: content.title,
-                    content: content.content,
-                  }
-                : undefined,
-            };
-            newImages.push(mockImage);
-
-            // Add to existing images (accumulate, not replace)
+            // Skip failed image instead of adding random placeholder
+            // Update progress without adding mock image
             set((state) => ({
               images: [...existingImages, ...newImages],
               generationProgress: ((i + 1) / total) * 100,
               generationStatus: {
                 ...state.generationStatus,
                 completedImages: [...newImages],
-                error: `이미지 ${i + 1} 생성 실패`,
+                error: `이미지 ${i + 1}/${total} 생성 실패: ${error}`,
               },
             }));
           }
@@ -420,6 +447,129 @@ ${requests.map((r, i) => {
         const { currentProject, saveProject } = useProjectStore.getState();
         if (currentProject) {
           saveProject();
+        }
+      },
+
+      regenerateImage: async (imageId: string) => {
+        const { images } = get();
+        const targetImage = images.find((img) => img.id === imageId);
+
+        if (!targetImage) {
+          console.error("Image not found:", imageId);
+          return;
+        }
+
+        set({ isGenerating: true });
+
+        const contentItems = useContentStore.getState().items;
+        const content = contentItems.find((item) => item.id === targetImage.contentId);
+        const settings = useSettingsStore.getState();
+        const provider = settings.apiSelection.imageApi;
+        const apiKey = settings.apiKeys[provider as keyof typeof settings.apiKeys];
+        const googleImageModel = settings.googleImageModel;
+
+        // Get style prompt
+        const selectedPromptId = settings.selectedImagePromptId;
+        const selectedPrompt = settings.imagePrompts.find((p) => p.id === selectedPromptId) || settings.imagePrompts[0];
+        const stylePrompt = selectedPrompt?.prompt || "";
+        const baseNegativePrompt = selectedPrompt?.negativePrompt || "";
+        const noTextNegative = "text, letters, words, writing, watermark, signature, logo, typography, caption, label, Korean text, Chinese text, Japanese text";
+        const negativePrompt = baseNegativePrompt
+          ? `${baseNegativePrompt}, ${noTextNegative}`
+          : noTextNegative;
+        const aspectRatio = selectedPrompt?.aspectRatio || "3:4";
+
+        // Build request
+        const request: tauriApi.ImageGenerationRequest = {
+          content_id: targetImage.contentId,
+          image_concept: content?.imageConcept || "",
+          style_prompt: stylePrompt,
+        };
+        if (selectedPrompt?.styleImagePath) {
+          request.style_image_path = selectedPrompt.styleImagePath;
+        }
+
+        try {
+          const modelToUse = provider === "google" ? googleImageModel : undefined;
+          let result;
+          let retryCount = 0;
+          const maxRetries = 2;
+
+          while (retryCount <= maxRetries) {
+            try {
+              result = await tauriApi.generateImage(
+                request,
+                apiKey,
+                provider,
+                modelToUse,
+                aspectRatio,
+                negativePrompt || undefined
+              );
+              break;
+            } catch (retryError) {
+              retryCount++;
+              if (retryCount > maxRetries) {
+                throw retryError;
+              }
+              console.warn(`Regeneration attempt ${retryCount} failed, retrying...`);
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+          }
+
+          if (!result) {
+            throw new Error("이미지 재생성 결과가 없습니다");
+          }
+
+          // Save to local path
+          let localPath = result.local_path ?? undefined;
+          const { currentProject } = useProjectStore.getState();
+          let savePath = settings.savePath;
+
+          if (currentProject && result.url) {
+            try {
+              savePath = await tauriApi.getProjectImagesDir(currentProject.id);
+            } catch (e) {
+              console.warn("Failed to get project images dir:", e);
+            }
+          }
+
+          if (savePath && result.url) {
+            try {
+              const filename = `image_${result.content_id}_${Date.now()}.png`;
+              const fullPath = `${savePath}/${filename}`;
+              localPath = await tauriApi.downloadImage(result.url, fullPath, false);
+            } catch (saveError) {
+              console.warn("Failed to save regenerated image:", saveError);
+            }
+          }
+
+          // Replace old image with new one
+          const newImage: GeneratedImage = {
+            id: result.id,
+            contentId: result.content_id,
+            url: result.url,
+            localPath,
+            textOverlay: targetImage.textOverlay, // Keep existing text overlay
+          };
+
+          set((state) => ({
+            images: state.images.map((img) =>
+              img.id === imageId ? newImage : img
+            ),
+            isGenerating: false,
+          }));
+
+          // Auto-save project
+          const projectStore = useProjectStore.getState();
+          if (projectStore.currentProject) {
+            projectStore.saveProject();
+          }
+
+          console.log("Image regenerated successfully");
+        } catch (error) {
+          console.error("Failed to regenerate image:", error);
+          set({ isGenerating: false });
+          alert(`이미지 재생성 실패: ${error}`);
         }
       },
 
@@ -446,9 +596,15 @@ ${requests.map((r, i) => {
           const savePath = `${basePath}/carousel_${String(currentIndex + 1).padStart(2, "0")}.png`;
 
           if (withText) {
-            // Render layered image with canvas
+            // Prioritize textOverlay (edited content) over contentItems
             const contentItems = useContentStore.getState().items;
-            const content = contentItems.find((item) => item.id === currentImage.contentId);
+            const originalContent = contentItems.find((item) => item.id === currentImage.contentId);
+            const content = currentImage.textOverlay || (originalContent ? {
+              characterName: originalContent.characterName,
+              journalNumber: originalContent.journalNumber,
+              title: originalContent.title,
+              content: originalContent.content,
+            } : null);
 
             if (!content) {
               throw new Error("콘텐츠를 찾을 수 없습니다");
@@ -485,12 +641,7 @@ ${requests.map((r, i) => {
             const dataUrl = await renderLayeredImage({
               imageUrl,
               preset: currentPreset,
-              content: {
-                characterName: content.characterName,
-                journalNumber: content.journalNumber,
-                title: content.title,
-                content: content.content,
-              },
+              content,
               width,
               height,
             });
@@ -550,7 +701,15 @@ ${requests.map((r, i) => {
             let savedCount = 0;
             for (let i = 0; i < images.length; i++) {
               const image = images[i];
-              const content = contentItems.find((item) => item.id === image.contentId);
+              const originalContent = contentItems.find((item) => item.id === image.contentId);
+
+              // Prioritize textOverlay (edited content) over contentItems
+              const content = image.textOverlay || (originalContent ? {
+                characterName: originalContent.characterName,
+                journalNumber: originalContent.journalNumber,
+                title: originalContent.title,
+                content: originalContent.content,
+              } : null);
 
               if (!content) {
                 console.warn(`Content not found for image ${image.id}`);
@@ -572,12 +731,7 @@ ${requests.map((r, i) => {
                 const dataUrl = await renderLayeredImage({
                   imageUrl,
                   preset: currentPreset,
-                  content: {
-                    characterName: content.characterName,
-                    journalNumber: content.journalNumber,
-                    title: content.title,
-                    content: content.content,
-                  },
+                  content,
                   width,
                   height,
                 });

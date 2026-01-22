@@ -17,6 +17,7 @@ import {
   X,
   FolderOpen,
   Trash2,
+  RefreshCw,
 } from "lucide-react";
 import { LayoutCanvas, ElementSettingsPanel, PresetSelector } from "@/components/layout-editor";
 import { useSystemFonts } from "@/hooks/useSystemFonts";
@@ -46,7 +47,7 @@ export default function Panel4GeneratedImages({ className = "" }: Panel4Props) {
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const { images, currentIndex, setCurrentIndex, downloadCurrent, downloadAll, deleteImage } = useImageStore();
+  const { images, currentIndex, setCurrentIndex, downloadCurrent, downloadAll, deleteImage, updateTextOverlay, regenerateImage, isGenerating } = useImageStore();
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
   const { items: contentItems } = useContentStore();
@@ -77,13 +78,13 @@ export default function Panel4GeneratedImages({ className = "" }: Panel4Props) {
     ? contentItems.find((item) => item.id === currentImage.contentId)
     : null;
 
-  // Fallback to textOverlay if content not found
-  const displayContent = currentContent || (currentImage?.textOverlay ? {
+  // Prioritize textOverlay (editable) over contentItems
+  const displayContent = currentImage?.textOverlay ? {
     characterName: currentImage.textOverlay.characterName,
     journalNumber: currentImage.textOverlay.journalNumber,
     title: currentImage.textOverlay.title,
     content: currentImage.textOverlay.content,
-  } : null);
+  } : (currentContent || null);
 
   // Get current layout for preview
   const currentPreset = layoutSettings.presets.find(
@@ -272,6 +273,68 @@ export default function Panel4GeneratedImages({ className = "" }: Panel4Props) {
 
               {/* 우측: 요소 설정 + 프리셋 선택 (300px 고정) */}
               <div className="w-[300px] flex-shrink-0 flex flex-col overflow-hidden">
+                {/* 텍스트 내용 편집 */}
+                {currentImage?.textOverlay && (
+                  <div className="pb-2 mb-2 border-b border-gray-200 space-y-2">
+                    <div className="flex items-center gap-2 text-xs font-medium text-gray-700">
+                      <Type className="w-3.5 h-3.5" />
+                      텍스트 내용 편집
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] text-gray-500">캐릭터명</label>
+                        <input
+                          type="text"
+                          value={currentImage.textOverlay.characterName}
+                          onChange={(e) => updateTextOverlay(currentImage.id, { characterName: e.target.value })}
+                          className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-pink-400"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-gray-500">번호</label>
+                        <input
+                          type="number"
+                          value={currentImage.textOverlay.journalNumber}
+                          onChange={(e) => updateTextOverlay(currentImage.id, { journalNumber: parseInt(e.target.value) || 1 })}
+                          className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-pink-400"
+                          min={1}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-gray-500">부제 (제목)</label>
+                      <input
+                        type="text"
+                        value={currentImage.textOverlay.title}
+                        onChange={(e) => updateTextOverlay(currentImage.id, { title: e.target.value })}
+                        className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-pink-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-gray-500">짧은지식</label>
+                      <textarea
+                        value={currentImage.textOverlay.content}
+                        onChange={(e) => updateTextOverlay(currentImage.id, { content: e.target.value })}
+                        className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-pink-400 resize-none"
+                        rows={2}
+                      />
+                    </div>
+                    {/* 재생성 버튼 */}
+                    <button
+                      onClick={() => {
+                        if (currentImage && !isGenerating) {
+                          regenerateImage(currentImage.id);
+                        }
+                      }}
+                      disabled={isGenerating}
+                      className="w-full mt-1 px-2 py-1.5 bg-pink-500 hover:bg-pink-600 text-white text-xs rounded flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
+                      {isGenerating ? '이미지 생성중...' : '이 이미지 재생성'}
+                    </button>
+                  </div>
+                )}
+
                 {/* 폰트 필터 옵션 */}
                 <div className="pb-2 mb-2 border-b border-gray-200">
                   <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-600">
@@ -512,6 +575,22 @@ export default function Panel4GeneratedImages({ className = "" }: Panel4Props) {
                     </div>
                   );
                 })()}
+
+                {/* 재생성 버튼 */}
+                <button
+                  onClick={() => {
+                    if (currentImage && !isGenerating) {
+                      regenerateImage(currentImage.id);
+                    }
+                  }}
+                  disabled={isGenerating}
+                  className="absolute top-2 right-2 px-2 py-1 bg-black/50 hover:bg-black/70 rounded-lg flex items-center gap-1 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ zIndex: 10 }}
+                  title="이 이미지 재생성"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-white ${isGenerating ? 'animate-spin' : ''}`} />
+                  <span className="text-xs text-white">{isGenerating ? '생성중...' : '재생성'}</span>
+                </button>
 
                 {/* 네비게이션 버튼 */}
                 {images.length > 1 && (
